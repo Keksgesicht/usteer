@@ -52,7 +52,16 @@ enum usteer_node_type {
 
 struct sta_info;
 struct usteer_local_node;
-
+/**
+ * A node struct comprising:
+ * 1. AVL node (AVL tree from libubox/avl.h)
+ * 2. list_head root of AVL tree
+ * 3. type
+ * 4. ??
+ * 5. ??
+ * 6. wifi ssid
+ * 7~ general wifi info: frequency, noise ..
+ */
 struct usteer_node {
 	struct avl_node avl;
 	struct list_head sta_info;
@@ -70,6 +79,9 @@ struct usteer_node {
 	int load;
 };
 
+/**
+ * request of a scan on frequency
+ */
 struct usteer_scan_request {
 	int n_freq;
 	int *freq;
@@ -77,6 +89,9 @@ struct usteer_scan_request {
 	bool passive;
 };
 
+/**
+ * result of a scan on frequency
+ */
 struct usteer_scan_result {
 	uint8_t bssid[6];
 	char ssid[33];
@@ -100,6 +115,16 @@ struct usteer_freq_data {
 	bool dfs;
 };
 
+/**
+ * Pointer functions:
+ * Initialize node
+ * Free memory
+ * Update node
+ * ???
+ * survey on a node, cb ???
+ * get frequencies
+ * scan
+ */
 struct usteer_node_handler {
 	struct list_head list;
 
