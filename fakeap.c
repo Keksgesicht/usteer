@@ -30,10 +30,12 @@ static struct usteer_timeout_queue tq;
 static FILE *r_fd;
 static struct ubus_object bss_obj;
 static struct ubus_context *ubus_ctx;
-static int freq = 2412;
+static int freq = 2412; // default frequency 2GHz?
 static int verbose;
 /**
- *
+ * current
+ * minimum
+ * maximum
  */
 struct var {
 	int cur;
@@ -41,7 +43,7 @@ struct var {
 	int max;
 };
 /**
- *
+ * station data
  */
 struct sta_data {
 	struct list_head list;
@@ -51,79 +53,128 @@ struct sta_data {
 	uint8_t addr[6];
 };
 /**
- *
- * @param val
+ * Generate current value in struct var
+ * @param val struct to store generated value
  */
 static void gen_val(struct var *val){
-	int delta = val->max - val->min;
+	int delta = val->max - val->min; // difference
 	uint8_t v;
 
 	val->cur = val->min;
-	if (!delta)
+	if (!delta) // if delta == 0 -> return
 		return;
-
+    /**
+     * fread(void * ptr, size_t size, size_t count, FILE * stream)
+     * Reads an array of count elements, each one with a size of size bytes,
+     * from the stream and stores them in the block of memory specified by ptr.
+     * Returns size
+     */
 	if (fread(&v, sizeof(v), 1, r_fd) != sizeof(v))
 		fprintf(stderr, "short read\n");
-	val->cur += (((unsigned int) v) * delta) / 0xff;
+	val->cur += (((unsigned int) v) * delta) / 0xff; // I have no freaking idea wtf this is.. some kind of normalization?
 }
 /**
- *
- * @param buf
- * @param name
- * @param addr
+ * Adds a MAC-address to a blobmsg
+ * @param buf blob buffer pointer
+ * @param name string
+ * @param addr pointer to MAC
  */
 static void blobmsg_add_macaddr(struct blob_buf *buf, const char *name, const uint8_t *addr){
+    /**
+     * allocate string buffer, with maximal length of 20 chars
+     */
 	char *s = blobmsg_alloc_string_buffer(buf, name, 20);
+	/**
+	 * int sprintf ( char * str, const char * format, ... );
+	 * Composes a string with the same text that would be printed if format
+	 * was used on printf, but instead of being printed,
+	 * the content is stored as a C string in the buffer pointed by str.
+	 */
 	sprintf(s, MAC_ADDR_FMT, MAC_ADDR_DATA(addr));
 	blobmsg_add_string_buffer(buf);
 }
 /**
  *
- * @param sta
+ * b is a blob buffer
+ * @param sta pointer to a station
  */
 static void sta_send_probe(struct sta_data *sta){
 	const char *type = "probe";
 	int ret;
-	int sig = -95 + sta->signal.cur;
-
+	int sig = -95 + sta->signal.cur; // signal
+    /**
+     * Initialize blob buffer
+     */
 	blob_buf_init(&b, 0);
+	/**
+	 * add MAC to buffer b with name address
+	 */
 	blobmsg_add_macaddr(&b, "address", sta->addr);
+	/**
+	 * register frequency
+	 */
 	blobmsg_add_u32(&b, "freq", freq);
+	/**
+	 * register signal
+	 */
 	blobmsg_add_u32(&b, "signal", sig);
+	/**
+     * send a notification to all subscribers of an object
+     * if timeout < 0, no reply is expected from subscribers
+	 */
 	ret = ubus_notify(ubus_ctx, &bss_obj, type, b.head, 100);
 	if (verbose)
 		fprintf(stderr, "STA "MAC_ADDR_FMT" probe: %d (%d ms, signal: %d)\n",
 			MAC_ADDR_DATA(sta->addr), ret, sta->probe.cur, sig);
 }
 /**
- *
- * @param sta
+ * Generate vals for probe and signal and set timeout
+ * Called after sta_send_probe(sta)
+ * @param sta station to prepare
  */
 static void sta_schedule_probe(struct sta_data *sta){
 	gen_val(&sta->probe);
 	gen_val(&sta->signal);
+	/**
+	 * usteer_timeout_queue tq
+	 * usteer_timeout probe_t
+	 */
 	usteer_timeout_set(&tq, &sta->probe_t, sta->probe.cur);
 }
 /**
- *
- * @param q
- * @param t
+ * Send probe
+ * @param q timeout queue pointer
+ * @param t timeout node pointer
  */
 static void sta_probe(struct usteer_timeout_queue *q, struct usteer_timeout *t){
+    /**
+     * container_of is some kind of a horrible macro magic
+     * might be some kind of pointer arithmetic?
+     */
 	struct sta_data *sta = container_of(t, struct sta_data, probe_t);
-
+    /**
+     * send probe to station
+     */
 	sta_send_probe(sta);
+	/**
+	 * schedule probe
+	 */
 	sta_schedule_probe(sta);
 }
 /**
- *
- * @param sta
+ * Initialize a station with station data
+ * @param sta station data pointer
  */
 static void init_station(struct sta_data *sta){
+    /**
+     * add station at the end
+     * &sta->list is the head
+     *
+     */
 	list_add_tail(&sta->list, &stations);
 	if (fread(&sta->addr, sizeof(sta->addr), 1, r_fd) != sizeof(sta->addr))
 		fprintf(stderr, "short read\n");
-	sta->addr[0] &= ~1;
+	sta->addr[0] &= ~1; // ~ = is a bitwise not operator
 
 	sta_schedule_probe(sta);
 }

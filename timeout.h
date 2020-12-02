@@ -23,13 +23,13 @@
 #include <libubox/avl.h>
 #include <libubox/uloop.h>
 /**
- *
+ * AVL Node for timeout
  */
 struct usteer_timeout {
 	struct avl_node node;
 };
 /**
- *
+ * Queue with avl nodes
  */
 struct usteer_timeout_queue {
 	struct avl_tree tree;
@@ -37,33 +37,33 @@ struct usteer_timeout_queue {
 	void (*cb)(struct usteer_timeout_queue *q, struct usteer_timeout *t);
 };
 /**
- *
+ * Check if node t has a previous node
  * @param t
- * @return
+ * @return bool
  */
 static inline bool usteer_timeout_isset(struct usteer_timeout *t){
 	return t->node.list.prev != NULL;
 }
 /**
- *
+ * Initialize time out queue
  * @param q
  */
 void usteer_timeout_init(struct usteer_timeout_queue *q);
 /**
- *
- * @param q
- * @param t
- * @param msecs
+ * Set time out
+ * @param q where to set time out
+ * @param t node with time out
+ * @param msecs time out in milli seconds
  */
 void usteer_timeout_set(struct usteer_timeout_queue *q, struct usteer_timeout *t,int msecs);
 /**
- *
- * @param q
- * @param t
+ * Cancel time out
+ * @param q where to cancel
+ * @param t node to cancel
  */
 void usteer_timeout_cancel(struct usteer_timeout_queue *q, struct usteer_timeout *t);
 /**
- *
+ * Flush queue
  * @param q
  */
 void usteer_timeout_flush(struct usteer_timeout_queue *q);
