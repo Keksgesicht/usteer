@@ -38,24 +38,34 @@
 
 static struct unl unl;
 static struct nlattr *tb[NL80211_ATTR_MAX + 1];
-
+/**
+ *
+ */
 struct nl80211_survey_req {
 	void (*cb)(void *priv, struct usteer_survey_data *d);
 	void *priv;
 };
-
+/**
+ *
+ */
 struct nl80211_scan_req {
 	void (*cb)(void *priv, struct usteer_scan_result *r);
 	void *priv;
 };
-
+/**
+ *
+ */
 struct nl80211_freqlist_req {
 	void (*cb)(void *priv, struct usteer_freq_data *f);
 	void *priv;
 };
-
-static int nl80211_survey_result(struct nl_msg *msg, void *arg)
-{
+/**
+ *
+ * @param msg
+ * @param arg
+ * @return
+ */
+static int nl80211_survey_result(struct nl_msg *msg, void *arg){
 	static struct nla_policy survey_policy[NL80211_SURVEY_INFO_MAX + 1] = {
 		[NL80211_SURVEY_INFO_FREQUENCY] = { .type = NLA_U32 },
 		[NL80211_SURVEY_INFO_NOISE] = { .type = NLA_U8 },
@@ -97,10 +107,14 @@ static int nl80211_survey_result(struct nl_msg *msg, void *arg)
 
 	return NL_SKIP;
 }
-
+/**
+ *
+ * @param node
+ * @param priv
+ * @param cb
+ */
 static void nl80211_get_survey(struct usteer_node *node, void *priv,
-			       void (*cb)(void *priv, struct usteer_survey_data *d))
-{
+			                   void (*cb)(void *priv, struct usteer_survey_data *d)){
 	struct usteer_local_node *ln = container_of(node, struct usteer_local_node, node);
 	struct nl80211_survey_req req = {
 		.priv = priv,
@@ -118,9 +132,12 @@ static void nl80211_get_survey(struct usteer_node *node, void *priv,
 nla_put_failure:
 	return;
 }
-
-static void nl80211_update_node_result(void *priv, struct usteer_survey_data *d)
-{
+/**
+ *
+ * @param priv
+ * @param d
+ */
+static void nl80211_update_node_result(void *priv, struct usteer_survey_data *d){
 	struct usteer_local_node *ln = priv;
 	uint32_t delta = 0, delta_busy = 0;
 
@@ -149,18 +166,22 @@ static void nl80211_update_node_result(void *priv, struct usteer_survey_data *d)
 		ln->node.load = ln->load_ewma;
 	}
 }
-
-static void nl80211_update_node(struct uloop_timeout *t)
-{
+/**
+ *
+ * @param t
+ */
+static void nl80211_update_node(struct uloop_timeout *t){
 	struct usteer_local_node *ln = container_of(t, struct usteer_local_node, nl80211.update);
 
 	uloop_timeout_set(t, 1000);
 	ln->ifindex = if_nametoindex(ln->iface);
 	nl80211_get_survey(&ln->node, ln, nl80211_update_node_result);
 }
-
-static void nl80211_init_node(struct usteer_node *node)
-{
+/**
+ *
+ * @param node
+ */
+static void nl80211_init_node(struct usteer_node *node){
 	struct usteer_local_node *ln = container_of(node, struct usteer_local_node, node);
 	struct genlmsghdr *gnlh;
 	static bool _init = false;
@@ -222,9 +243,11 @@ nla_put_failure:
 	nlmsg_free(msg);
 	return;
 }
-
-static void nl80211_free_node(struct usteer_node *node)
-{
+/**
+ *
+ * @param node
+ */
+static void nl80211_free_node(struct usteer_node *node){
 	struct usteer_local_node *ln = container_of(node, struct usteer_local_node, node);
 
 	if (!ln->nl80211.present)
@@ -232,9 +255,12 @@ static void nl80211_free_node(struct usteer_node *node)
 
 	uloop_timeout_cancel(&ln->nl80211.update);
 }
-
-static void nl80211_update_sta(struct usteer_node *node, struct sta_info *si)
-{
+/**
+ *
+ * @param node
+ * @param si
+ */
+static void nl80211_update_sta(struct usteer_node *node, struct sta_info *si){
 	struct nlattr *tb_sta[NL80211_STA_INFO_MAX + 1];
 	struct usteer_local_node *ln = container_of(node, struct usteer_local_node, node);
 	struct genlmsghdr *gnlh;
@@ -271,9 +297,13 @@ nla_put_failure:
 	nlmsg_free(msg);
 	return;
 }
-
-static int nl80211_scan_result(struct nl_msg *msg, void *arg)
-{
+/**
+ *
+ * @param msg
+ * @param arg
+ * @return
+ */
+static int nl80211_scan_result(struct nl_msg *msg, void *arg){
 	static struct nla_policy bss_policy[NL80211_BSS_MAX + 1] = {
 		[NL80211_BSS_FREQUENCY] = { .type = NLA_U32 },
 		[NL80211_BSS_CAPABILITY] = { .type = NLA_U16 },
@@ -337,9 +367,13 @@ skip_ie:
 
 	return NL_SKIP;
 }
-
-static int nl80211_scan_event_cb(struct nl_msg *msg, void *data)
-{
+/**
+ *
+ * @param msg
+ * @param data
+ * @return
+ */
+static int nl80211_scan_event_cb(struct nl_msg *msg, void *data){
 	struct genlmsghdr *gnlh = nlmsg_data(nlmsg_hdr(msg));
 
 	switch (gnlh->cmd) {
@@ -351,10 +385,16 @@ static int nl80211_scan_event_cb(struct nl_msg *msg, void *data)
 
 	return NL_SKIP;
 }
-
+/**
+ *
+ * @param node
+ * @param req
+ * @param priv
+ * @param cb
+ * @return
+ */
 static int nl80211_scan(struct usteer_node *node, struct usteer_scan_request *req,
-			void *priv, void (*cb)(void *priv, struct usteer_scan_result *r))
-{
+			            void *priv, void (*cb)(void *priv, struct usteer_scan_result *r)){
 	struct usteer_local_node *ln = container_of(node, struct usteer_local_node, node);
 	struct nl80211_scan_req reqdata = {
 		.priv = priv,
@@ -410,9 +450,13 @@ nla_put_failure:
 	nlmsg_free(msg);
 	return -ENOMEM;
 }
-
-static int nl80211_wiphy_result(struct nl_msg *msg, void *arg)
-{
+/**
+ *
+ * @param msg
+ * @param arg
+ * @return
+ */
+static int nl80211_wiphy_result(struct nl_msg *msg, void *arg){
 	struct nl80211_freqlist_req *req = arg;
 	struct nlattr *tb[NL80211_ATTR_MAX + 1];
 	struct nlattr *tb_band[NL80211_BAND_ATTR_MAX + 1];
@@ -468,10 +512,14 @@ static int nl80211_wiphy_result(struct nl_msg *msg, void *arg)
 
 	return NL_SKIP;
 }
-
+/**
+ *
+ * @param node
+ * @param priv
+ * @param cb
+ */
 static void nl80211_get_freqlist(struct usteer_node *node, void *priv,
-				 void (*cb)(void *priv, struct usteer_freq_data *f))
-{
+				                 void (*cb)(void *priv, struct usteer_freq_data *f)){
 	struct usteer_local_node *ln = container_of(node, struct usteer_local_node, node);
 	struct nl80211_freqlist_req req = {
 		.priv = priv,
@@ -494,7 +542,9 @@ static void nl80211_get_freqlist(struct usteer_node *node, void *priv,
 nla_put_failure:
 	nlmsg_free(msg);
 }
-
+/**
+ *
+ */
 static struct usteer_node_handler nl80211_handler = {
 	.init_node = nl80211_init_node,
 	.free_node = nl80211_free_node,
@@ -503,8 +553,9 @@ static struct usteer_node_handler nl80211_handler = {
 	.get_freqlist = nl80211_get_freqlist,
 	.scan = nl80211_scan,
 };
-
-static void __usteer_init usteer_nl80211_init(void)
-{
+/**
+ *
+ */
+static void __usteer_init usteer_nl80211_init(void){
 	list_add(&nl80211_handler.list, &node_handlers);
 }

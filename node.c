@@ -18,9 +18,12 @@
  */
 
 #include "usteer.h"
-
-void usteer_node_set_blob(struct blob_attr **dest, struct blob_attr *val)
-{
+/**
+ *
+ * @param dest
+ * @param val
+ */
+void usteer_node_set_blob(struct blob_attr **dest, struct blob_attr *val){
 	int new_len;
 	int len;
 

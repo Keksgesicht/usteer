@@ -19,12 +19,16 @@
 
 #include "usteer.h"
 #include "node.h"
-
+/**
+ *
+ */
 static struct blob_buf b;
-
-static void
-netifd_parse_interface_config(struct usteer_local_node *ln, struct blob_attr *msg)
-{
+/**
+ *
+ * @param ln
+ * @param msg
+ */
+static void netifd_parse_interface_config(struct usteer_local_node *ln, struct blob_attr *msg){
 	static const struct blobmsg_policy policy = {
 		.name = "maxassoc",
 		.type = BLOBMSG_TYPE_INT32,
@@ -39,10 +43,12 @@ netifd_parse_interface_config(struct usteer_local_node *ln, struct blob_attr *ms
 	ln->node.max_assoc = val;
 	ln->netifd.status_complete = true;
 }
-
-static void
-netifd_parse_interface(struct usteer_local_node *ln, struct blob_attr *msg)
-{
+/**
+ *
+ * @param ln
+ * @param msg
+ */
+static void netifd_parse_interface(struct usteer_local_node *ln, struct blob_attr *msg){
 	enum {
 		N_IF_CONFIG,
 		N_IF_NAME,
@@ -66,10 +72,12 @@ netifd_parse_interface(struct usteer_local_node *ln, struct blob_attr *msg)
 
 	netifd_parse_interface_config(ln, tb[N_IF_CONFIG]);
 }
-
-static void
-netifd_parse_radio(struct usteer_local_node *ln, struct blob_attr *msg)
-{
+/**
+ *
+ * @param ln
+ * @param msg
+ */
+static void netifd_parse_radio(struct usteer_local_node *ln, struct blob_attr *msg){
 	static const struct blobmsg_policy policy = {
 		.name = "interfaces",
 		.type = BLOBMSG_TYPE_ARRAY,
@@ -87,10 +95,13 @@ netifd_parse_radio(struct usteer_local_node *ln, struct blob_attr *msg)
 	blobmsg_for_each_attr(cur, iface, rem)
 		netifd_parse_interface(ln, cur);
 }
-
-static void
-netifd_status_cb(struct ubus_request *req, int type, struct blob_attr *msg)
-{
+/**
+ *
+ * @param req
+ * @param type
+ * @param msg
+ */
+static void netifd_status_cb(struct ubus_request *req, int type, struct blob_attr *msg){
 	struct usteer_local_node *ln;
 	struct blob_attr *cur;
 	int rem;
@@ -101,9 +112,11 @@ netifd_status_cb(struct ubus_request *req, int type, struct blob_attr *msg)
 	blobmsg_for_each_attr(cur, msg, rem)
 		netifd_parse_radio(ln, cur);
 }
-
-static void netifd_update_node(struct usteer_node *node)
-{
+/**
+ *
+ * @param node
+ */
+static void netifd_update_node(struct usteer_node *node){
 	struct usteer_local_node *ln;
 	uint32_t id;
 
@@ -123,32 +136,39 @@ static void netifd_update_node(struct usteer_node *node)
 	ubus_complete_request_async(ubus_ctx, &ln->netifd.req);
 	ln->netifd.req_pending = true;
 }
-
-static void netifd_init_node(struct usteer_node *node)
-{
+/**
+ *
+ * @param node
+ */
+static void netifd_init_node(struct usteer_node *node){
 	struct usteer_local_node *ln;
 
 	ln = container_of(node, struct usteer_local_node, node);
 	ln->netifd.status_complete = false;
 	netifd_update_node(node);
 }
-
-static void netifd_free_node(struct usteer_node *node)
-{
+/**
+ *
+ * @param node
+ */
+static void netifd_free_node(struct usteer_node *node){
 	struct usteer_local_node *ln;
 
 	ln = container_of(node, struct usteer_local_node, node);
 	if (ln->netifd.req_pending)
 		ubus_abort_request(ubus_ctx, &ln->netifd.req);
 }
-
+/**
+ *
+ */
 static struct usteer_node_handler netifd_handler = {
 	.init_node = netifd_init_node,
 	.update_node = netifd_update_node,
 	.free_node = netifd_free_node,
 };
-
-static void __usteer_init usteer_netifd_init(void)
-{
+/**
+ *
+ */
+static void __usteer_init usteer_netifd_init(void){
 	list_add(&netifd_handler.list, &node_handlers);
 }

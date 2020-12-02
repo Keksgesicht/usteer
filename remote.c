@@ -39,59 +39,83 @@ static struct uloop_timeout reload_timer;
 
 static struct blob_buf buf;
 static uint32_t msg_seq;
-
+/**
+ *
+ */
 struct interface {
 	struct vlist_node node;
 	int ifindex;
 };
-
-static void
-interfaces_update_cb(struct vlist_tree *tree,
-		     struct vlist_node *node_new,
-		     struct vlist_node *node_old);
-
-static int remote_node_cmp(const void *k1, const void *k2, void *ptr)
-{
+/**
+ *
+ * @param tree
+ * @param node_new
+ * @param node_old
+ */
+static void interfaces_update_cb(struct vlist_tree *tree,
+	                	         struct vlist_node *node_new,
+		                         struct vlist_node *node_old);
+/**
+ *
+ * @param k1
+ * @param k2
+ * @param ptr
+ * @return
+ */
+static int remote_node_cmp(const void *k1, const void *k2, void *ptr){
 	unsigned long v1 = (unsigned long) k1;
 	unsigned long v2 = (unsigned long) k2;
 
 	return v2 - v1;
 }
-
+/**
+ *
+ */
 static VLIST_TREE(interfaces, avl_strcmp, interfaces_update_cb, true, true);
+/**
+ *
+ */
 AVL_TREE(remote_nodes, remote_node_cmp, true, NULL);
-
-static const char *
-interface_name(struct interface *iface)
-{
+/**
+ *
+ * @param iface
+ * @return
+ */
+static const char * interface_name(struct interface *iface){
 	return iface->node.avl.key;
 }
-
-static void
-interface_check(struct interface *iface)
-{
+/**
+ *
+ * @param iface
+ */
+static void interface_check(struct interface *iface){
 	iface->ifindex = if_nametoindex(interface_name(iface));
 	uloop_timeout_set(&reload_timer, 1);
 }
-
-static void
-interface_init(struct interface *iface)
-{
+/**
+ *
+ * @param iface
+ */
+static void interface_init(struct interface *iface){
 	interface_check(iface);
 }
-
-static void
-interface_free(struct interface *iface)
-{
+/**
+ *
+ * @param iface
+ */
+static void interface_free(struct interface *iface){
 	avl_delete(&interfaces.avl, &iface->node.avl);
 	free(iface);
 }
-
-static void
-interfaces_update_cb(struct vlist_tree *tree,
-		     struct vlist_node *node_new,
-		     struct vlist_node *node_old)
-{
+/**
+ *
+ * @param tree
+ * @param node_new
+ * @param node_old
+ */
+static void interfaces_update_cb(struct vlist_tree *tree,
+		                         struct vlist_node *node_new,
+		                         struct vlist_node *node_old){
 	struct interface *iface;
 
 	if (node_new && node_old) {
@@ -107,9 +131,11 @@ interfaces_update_cb(struct vlist_tree *tree,
 		interface_init(iface);
 	}
 }
-
-void usteer_interface_add(const char *name)
-{
+/**
+ *
+ * @param name
+ */
+void usteer_interface_add(const char *name){
 	struct interface *iface;
 	char *name_buf;
 
@@ -117,9 +143,11 @@ void usteer_interface_add(const char *name)
 	strcpy(name_buf, name);
 	vlist_add(&interfaces, &iface->node, name_buf);
 }
-
-void config_set_interfaces(struct blob_attr *data)
-{
+/**
+ *
+ * @param data
+ */
+void config_set_interfaces(struct blob_attr *data){
 	struct blob_attr *cur;
 	int rem;
 
@@ -132,9 +160,11 @@ void config_set_interfaces(struct blob_attr *data)
 	}
 	vlist_flush(&interfaces);
 }
-
-void config_get_interfaces(struct blob_buf *buf)
-{
+/**
+ *
+ * @param buf
+ */
+void config_get_interfaces(struct blob_buf *buf){
 	struct interface *iface;
 	void *c;
 
@@ -144,10 +174,12 @@ void config_get_interfaces(struct blob_buf *buf)
 	}
 	blobmsg_close_array(buf, c);
 }
-
-static void
-interface_add_station(struct usteer_remote_node *node, struct blob_attr *data)
-{
+/**
+ *
+ * @param node
+ * @param data
+ */
+static void interface_add_station(struct usteer_remote_node *node, struct blob_attr *data){
 	struct sta *sta;
 	struct sta_info *si;
 	struct apmsg_sta msg;
@@ -176,18 +208,23 @@ interface_add_station(struct usteer_remote_node *node, struct blob_attr *data)
 	si->seen = current_time - msg.seen;
 	usteer_sta_info_update_timeout(si, msg.timeout);
 }
-
-static void
-remote_node_free(struct usteer_remote_node *node)
-{
+/**
+ *
+ * @param node
+ */
+static void remote_node_free(struct usteer_remote_node *node){
 	avl_delete(&remote_nodes, &node->avl);
 	usteer_sta_node_cleanup(&node->node);
 	free(node);
 }
-
-static struct usteer_remote_node *
-interface_get_node(const char *addr, unsigned long id, const char *name)
-{
+/**
+ *
+ * @param addr
+ * @param id
+ * @param name
+ * @return
+ */
+static struct usteer_remote_node * interface_get_node(const char *addr, unsigned long id, const char *name){
 	struct usteer_remote_node *node;
 	int addr_len = strlen(addr);
 	char *buf;
@@ -213,10 +250,14 @@ interface_get_node(const char *addr, unsigned long id, const char *name)
 
 	return node;
 }
-
-static void
-interface_add_node(struct interface *iface, const char *addr, unsigned long id, struct blob_attr *data)
-{
+/**
+ *
+ * @param iface
+ * @param addr
+ * @param id
+ * @param data
+ */
+static void interface_add_node(struct interface *iface, const char *addr, unsigned long id, struct blob_attr *data){
 	struct usteer_remote_node *node;
 	struct apmsg_node msg;
 	struct blob_attr *cur;
@@ -242,10 +283,14 @@ interface_add_node(struct interface *iface, const char *addr, unsigned long id, 
 	blob_for_each_attr(cur, msg.stations, rem)
 		interface_add_station(node, cur);
 }
-
-static void
-interface_recv_msg(struct interface *iface, struct in_addr *addr, void *buf, int len)
-{
+/**
+ *
+ * @param iface
+ * @param addr
+ * @param buf
+ * @param len
+ */
+static void interface_recv_msg(struct interface *iface, struct in_addr *addr, void *buf, int len){
 	char addr_str[INET_ADDRSTRLEN];
 	struct blob_attr *data = buf;
 	struct apmsg msg;
@@ -273,10 +318,12 @@ interface_recv_msg(struct interface *iface, struct in_addr *addr, void *buf, int
 	blob_for_each_attr(cur, msg.nodes, rem)
 		interface_add_node(iface, addr_str, msg.id, cur);
 }
-
-static struct interface *
-interface_find_by_ifindex(int index)
-{
+/**
+ *
+ * @param index
+ * @return
+ */
+static struct interface * interface_find_by_ifindex(int index){
 	struct interface *iface;
 
 	vlist_for_each_element(&interfaces, iface, node) {
@@ -286,10 +333,12 @@ interface_find_by_ifindex(int index)
 
 	return NULL;
 }
-
-static void
-interface_recv(struct uloop_fd *u, unsigned int events)
-{
+/**
+ *
+ * @param u
+ * @param events
+ */
+static void interface_recv(struct uloop_fd *u, unsigned int events){
 	static char buf[APMGR_BUFLEN];
 	static char cmsg_buf[( CMSG_SPACE(sizeof(struct in_pktinfo)) + sizeof(int)) + 1];
 	static struct sockaddr_in sin;
@@ -347,9 +396,12 @@ interface_recv(struct uloop_fd *u, unsigned int events)
 		interface_recv_msg(iface, &sin.sin_addr, buf, len);
 	} while (1);
 }
-
-static void interface_send_msg(struct interface *iface, struct blob_attr *data)
-{
+/**
+ *
+ * @param iface
+ * @param data
+ */
+static void interface_send_msg(struct interface *iface, struct blob_attr *data){
 	static size_t cmsg_data[( CMSG_SPACE(sizeof(struct in_pktinfo)) / sizeof(size_t)) + 1];
 	static struct sockaddr_in a;
 	static struct iovec iov;
@@ -383,9 +435,11 @@ static void interface_send_msg(struct interface *iface, struct blob_attr *data)
 	if (sendmsg(remote_fd.fd, &m, 0) < 0)
 		perror("sendmsg");
 }
-
-static void usteer_send_sta_info(struct sta_info *sta)
-{
+/**
+ *
+ * @param sta
+ */
+static void usteer_send_sta_info(struct sta_info *sta){
 	int seen = current_time - sta->seen;
 	void *c;
 
@@ -397,9 +451,12 @@ static void usteer_send_sta_info(struct sta_info *sta)
 	blob_put_int32(&buf, APMSG_STA_TIMEOUT, config.local_sta_timeout - seen);
 	blob_nest_end(&buf, c);
 }
-
-static void usteer_send_node(struct usteer_node *node, struct sta_info *sta)
-{
+/**
+ *
+ * @param node
+ * @param sta
+ */
+static void usteer_send_node(struct usteer_node *node, struct sta_info *sta){
 	void *c, *s, *r;
 
 	c = blob_nest_start(&buf, 0);
@@ -437,10 +494,10 @@ static void usteer_send_node(struct usteer_node *node, struct sta_info *sta)
 
 	blob_nest_end(&buf, c);
 }
-
-static void
-usteer_check_timeout(void)
-{
+/**
+ *
+ */
+static void usteer_check_timeout(void){
 	struct usteer_remote_node *node, *tmp;
 	int timeout = config.remote_node_timeout / config.remote_update_interval;
 
@@ -449,20 +506,22 @@ usteer_check_timeout(void)
 			remote_node_free(node);
 	}
 }
-
-static void *
-usteer_update_init(void)
-{
+/**
+ *
+ * @return
+ */
+static void * usteer_update_init(void){
 	blob_buf_init(&buf, 0);
 	blob_put_int32(&buf, APMSG_ID, local_id);
 	blob_put_int32(&buf, APMSG_SEQ, ++msg_seq);
 
 	return blob_nest_start(&buf, APMSG_NODES);
 }
-
-static void
-usteer_update_send(void *c)
-{
+/**
+ *
+ * @param c
+ */
+static void usteer_update_send(void *c){
 	struct interface *iface;
 
 	blob_nest_end(&buf, c);
@@ -470,18 +529,20 @@ usteer_update_send(void *c)
 	vlist_for_each_element(&interfaces, iface, node)
 		interface_send_msg(iface, buf.head);
 }
-
-void
-usteer_send_sta_update(struct sta_info *si)
-{
+/**
+ *
+ * @param si
+ */
+void usteer_send_sta_update(struct sta_info *si){
 	void *c = usteer_update_init();
 	usteer_send_node(si->node, si);
 	usteer_update_send(c);
 }
-
-static void
-usteer_send_update_timer(struct uloop_timeout *t)
-{
+/**
+ *
+ * @param t
+ */
+static void usteer_send_update_timer(struct uloop_timeout *t){
 	struct usteer_node *node;
 	void *c;
 
@@ -498,10 +559,11 @@ usteer_send_update_timer(struct uloop_timeout *t)
 	usteer_update_send(c);
 	usteer_check_timeout();
 }
-
-static int
-usteer_init_local_id(void)
-{
+/**
+ *
+ * @return
+ */
+static int usteer_init_local_id(void){
 	FILE *f;
 
 	f = fopen("/dev/urandom", "r");
@@ -516,10 +578,11 @@ usteer_init_local_id(void)
 	fclose(f);
 	return 0;
 }
-
-static void
-usteer_reload_timer(struct uloop_timeout *t)
-{
+/**
+ *
+ * @param t
+ */
+static void usteer_reload_timer(struct uloop_timeout *t){
 	int yes = 1;
 	int fd;
 
@@ -546,9 +609,11 @@ usteer_reload_timer(struct uloop_timeout *t)
 	remote_fd.cb = interface_recv;
 	uloop_fd_add(&remote_fd, ULOOP_READ);
 }
-
-int usteer_interface_init(void)
-{
+/**
+ *
+ * @return
+ */
+int usteer_interface_init(void){
 	if (usteer_init_local_id())
 		return -1;
 

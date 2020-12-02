@@ -18,13 +18,16 @@
  */
 
 #include <string.h>
-
 #include <libubox/utils.h>
-
 #include "timeout.h"
-
-static int usteer_timeout_cmp(const void *k1, const void *k2, void *ptr)
-{
+/**
+ *
+ * @param k1
+ * @param k2
+ * @param ptr
+ * @return
+ */
+static int usteer_timeout_cmp(const void *k1, const void *k2, void *ptr){
 	uint32_t ref = (uint32_t) (intptr_t) ptr;
 	int32_t t1 = (uint32_t) (intptr_t) k1 - ref;
 	int32_t t2 = (uint32_t) (intptr_t) k2 - ref;
@@ -36,15 +39,22 @@ static int usteer_timeout_cmp(const void *k1, const void *k2, void *ptr)
 	else
 		return 0;
 }
-
-static int32_t usteer_timeout_delta(struct usteer_timeout *t, uint32_t time)
-{
+/**
+ *
+ * @param t
+ * @param time
+ * @return
+ */
+static int32_t usteer_timeout_delta(struct usteer_timeout *t, uint32_t time){
 	uint32_t val = (uint32_t) (intptr_t) t->node.key;
 	return val - time;
 }
-
-static void usteer_timeout_recalc(struct usteer_timeout_queue *q, uint32_t time)
-{
+/**
+ *
+ * @param q
+ * @param time
+ */
+static void usteer_timeout_recalc(struct usteer_timeout_queue *q, uint32_t time){
 	struct usteer_timeout *t;
 	int32_t delta;
 
@@ -61,9 +71,11 @@ static void usteer_timeout_recalc(struct usteer_timeout_queue *q, uint32_t time)
 
 	uloop_timeout_set(&q->timeout, delta);
 }
-
-static uint32_t ampgr_timeout_current_time(void)
-{
+/**
+ *
+ * @return
+ */
+static uint32_t ampgr_timeout_current_time(void){
 	struct timespec ts;
 	uint32_t val;
 
@@ -73,9 +85,11 @@ static uint32_t ampgr_timeout_current_time(void)
 
 	return val;
 }
-
-static void usteer_timeout_cb(struct uloop_timeout *timeout)
-{
+/**
+ *
+ * @param timeout
+ */
+static void usteer_timeout_cb(struct uloop_timeout *timeout){
 	struct usteer_timeout_queue *q;
 	struct usteer_timeout *t, *tmp;
 	bool found;
@@ -99,23 +113,31 @@ static void usteer_timeout_cb(struct uloop_timeout *timeout)
 
 	usteer_timeout_recalc(q, time);
 }
-
-
-void usteer_timeout_init(struct usteer_timeout_queue *q)
-{
+/**
+ *
+ * @param q
+ */
+void usteer_timeout_init(struct usteer_timeout_queue *q){
 	avl_init(&q->tree, usteer_timeout_cmp, true, NULL);
 	q->timeout.cb = usteer_timeout_cb;
 }
-
+/**
+ *
+ * @param q
+ * @param t
+ */
 static void __usteer_timeout_cancel(struct usteer_timeout_queue *q,
-				   struct usteer_timeout *t)
-{
+				                    struct usteer_timeout *t){
 	avl_delete(&q->tree, &t->node);
 }
-
+/**
+ *
+ * @param q
+ * @param t
+ * @param msecs
+ */
 void usteer_timeout_set(struct usteer_timeout_queue *q, struct usteer_timeout *t,
-		       int msecs)
-{
+		                int msecs){
 	uint32_t time = ampgr_timeout_current_time();
 	uint32_t val = time + msecs;
 	bool recalc = false;
@@ -136,19 +158,24 @@ void usteer_timeout_set(struct usteer_timeout_queue *q, struct usteer_timeout *t
 	if (recalc)
 		usteer_timeout_recalc(q, time);
 }
-
+/**
+ *
+ * @param q
+ * @param t
+ */
 void usteer_timeout_cancel(struct usteer_timeout_queue *q,
-			  struct usteer_timeout *t)
-{
+			               struct usteer_timeout *t){
 	if (!usteer_timeout_isset(t))
 		return;
 
 	__usteer_timeout_cancel(q, t);
 	memset(&t->node.list, 0, sizeof(t->node.list));
 }
-
-void usteer_timeout_flush(struct usteer_timeout_queue *q)
-{
+/**
+ *
+ * @param q
+ */
+void usteer_timeout_flush(struct usteer_timeout_queue *q){
 	struct usteer_timeout *t, *tmp;
 
 	uloop_timeout_cancel(&q->timeout);

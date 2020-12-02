@@ -19,9 +19,13 @@
 
 #include "usteer.h"
 #include "remote.h"
-
-bool parse_apmsg(struct apmsg *msg, struct blob_attr *data)
-{
+/**
+ *
+ * @param msg
+ * @param data
+ * @return
+ */
+bool parse_apmsg(struct apmsg *msg, struct blob_attr *data){
 	static const struct blob_attr_info policy[__APMSG_MAX] = {
 		[APMSG_ID] = { .type = BLOB_ATTR_INT32 },
 		[APMSG_SEQ] = { .type = BLOB_ATTR_INT32 },
@@ -39,18 +43,24 @@ bool parse_apmsg(struct apmsg *msg, struct blob_attr *data)
 
 	return true;
 }
-
-static int
-get_int32(struct blob_attr *attr)
-{
+/**
+ *
+ * @param attr
+ * @return
+ */
+static int get_int32(struct blob_attr *attr){
 	if (!attr)
 		return 0;
 
 	return blob_get_int32(attr);
 }
-
-bool parse_apmsg_node(struct apmsg_node *msg, struct blob_attr *data)
-{
+/**
+ *
+ * @param msg
+ * @param data
+ * @return
+ */
+bool parse_apmsg_node(struct apmsg_node *msg, struct blob_attr *data){
 	static const struct blob_attr_info policy[__APMSG_NODE_MAX] = {
 		[APMSG_NODE_NAME] = { .type = BLOB_ATTR_STRING },
 		[APMSG_NODE_FREQ] = { .type = BLOB_ATTR_INT32 },
@@ -109,9 +119,13 @@ bool parse_apmsg_node(struct apmsg_node *msg, struct blob_attr *data)
 
 	return true;
 }
-
-bool parse_apmsg_sta(struct apmsg_sta *msg, struct blob_attr *data)
-{
+/**
+ *
+ * @param msg
+ * @param data
+ * @return
+ */
+bool parse_apmsg_sta(struct apmsg_sta *msg, struct blob_attr *data){
 	static const struct blob_attr_info policy[__APMSG_STA_MAX] = {
 		[APMSG_STA_ADDR] = { .type = BLOB_ATTR_BINARY },
 		[APMSG_STA_SIGNAL] = { .type = BLOB_ATTR_INT32 },

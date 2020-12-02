@@ -18,29 +18,35 @@
  */
 
 #include "usteer.h"
-
-static int
-avl_macaddr_cmp(const void *k1, const void *k2, void *ptr)
-{
+/**
+ *
+ * @param k1
+ * @param k2
+ * @param ptr
+ * @return
+ */
+static int avl_macaddr_cmp(const void *k1, const void *k2, void *ptr){
 	return memcmp(k1, k2, 6);
 }
 
 AVL_TREE(stations, avl_macaddr_cmp, false, NULL);
 static struct usteer_timeout_queue tq;
-
-static void
-usteer_sta_del(struct sta *sta)
-{
+/**
+ *
+ * @param sta
+ */
+static void usteer_sta_del(struct sta *sta){
 	MSG(DEBUG, "Delete station " MAC_ADDR_FMT "\n",
 	    MAC_ADDR_DATA(sta->addr));
 
 	avl_delete(&stations, &sta->avl);
 	free(sta);
 }
-
-static void
-usteer_sta_info_del(struct sta_info *si)
-{
+/**
+ *
+ * @param si
+ */
+static void usteer_sta_info_del(struct sta_info *si){
 	struct sta *sta = si->sta;
 
 	MSG(DEBUG, "Delete station " MAC_ADDR_FMT " entry for node %s\n",
@@ -54,10 +60,11 @@ usteer_sta_info_del(struct sta_info *si)
 	if (list_empty(&sta->nodes))
 		usteer_sta_del(sta);
 }
-
-void
-usteer_sta_node_cleanup(struct usteer_node *node)
-{
+/**
+ *
+ * @param node
+ */
+void usteer_sta_node_cleanup(struct usteer_node *node){
 	struct sta_info *si, *tmp;
 
 	free(node->rrm_nr);
@@ -66,10 +73,12 @@ usteer_sta_node_cleanup(struct usteer_node *node)
 	list_for_each_entry_safe(si, tmp, &node->sta_info, node_list)
 		usteer_sta_info_del(si);
 }
-
-static void
-usteer_sta_info_timeout(struct usteer_timeout_queue *q, struct usteer_timeout *t)
-{
+/**
+ *
+ * @param q
+ * @param t
+ */
+static void usteer_sta_info_timeout(struct usteer_timeout_queue *q, struct usteer_timeout *t){
 	struct sta_info *si = container_of(t, struct sta_info, timeout);
 
 	MSG_T_STA("local_sta_timeout", si->sta->addr,
@@ -77,10 +86,14 @@ usteer_sta_info_timeout(struct usteer_timeout_queue *q, struct usteer_timeout *t
 
 	usteer_sta_info_del(si);
 }
-
-struct sta_info *
-usteer_sta_info_get(struct sta *sta, struct usteer_node *node, bool *create)
-{
+/**
+ *
+ * @param sta
+ * @param node
+ * @param create
+ * @return
+ */
+struct sta_info * usteer_sta_info_get(struct sta *sta, struct usteer_node *node, bool *create){
 	struct sta_info *si;
 
 	list_for_each_entry(si, &sta->nodes, list) {
@@ -109,11 +122,12 @@ usteer_sta_info_get(struct sta *sta, struct usteer_node *node, bool *create)
 
 	return si;
 }
-
-
-void
-usteer_sta_info_update_timeout(struct sta_info *si, int timeout)
-{
+/**
+ *
+ * @param si
+ * @param timeout
+ */
+void usteer_sta_info_update_timeout(struct sta_info *si, int timeout){
 	if (si->connected == 1)
 		usteer_timeout_cancel(&tq, &si->timeout);
 	else if (timeout > 0)
@@ -121,10 +135,13 @@ usteer_sta_info_update_timeout(struct sta_info *si, int timeout)
 	else
 		usteer_sta_info_del(si);
 }
-
-struct sta *
-usteer_sta_get(const uint8_t *addr, bool create)
-{
+/**
+ *
+ * @param addr
+ * @param create
+ * @return
+ */
+struct sta * usteer_sta_get(const uint8_t *addr, bool create){
 	struct sta *sta;
 
 	sta = avl_find_element(&stations, addr, sta, avl);
@@ -143,10 +160,13 @@ usteer_sta_get(const uint8_t *addr, bool create)
 
 	return sta;
 }
-
-void
-usteer_sta_info_update(struct sta_info *si, int signal, bool avg)
-{
+/**
+ *
+ * @param si
+ * @param signal
+ * @param avg
+ */
+void usteer_sta_info_update(struct sta_info *si, int signal, bool avg){
 	/* ignore probe request signal when connected */
 	if (si->connected == 1 && si->signal != NO_SIGNAL && !avg)
 		signal = NO_SIGNAL;
@@ -157,11 +177,17 @@ usteer_sta_info_update(struct sta_info *si, int signal, bool avg)
 	si->seen = current_time;
 	usteer_sta_info_update_timeout(si, config.local_sta_timeout);
 }
-
-bool
-usteer_handle_sta_event(struct usteer_node *node, const uint8_t *addr,
-		       enum usteer_event_type type, int freq, int signal)
-{
+/**
+ *
+ * @param node
+ * @param addr
+ * @param type
+ * @param freq
+ * @param signal
+ * @return
+ */
+bool usteer_handle_sta_event(struct usteer_node *node, const uint8_t *addr,
+                             enum usteer_event_type type, int freq, int signal){
 	struct sta *sta;
 	struct sta_info *si;
 	uint32_t diff;
@@ -202,9 +228,10 @@ usteer_handle_sta_event(struct usteer_node *node, const uint8_t *addr,
 
 	return ret;
 }
-
-static void __usteer_init usteer_sta_init(void)
-{
+/**
+ *
+ */
+static void __usteer_init usteer_sta_init(void){
 	usteer_timeout_init(&tq);
 	tq.cb = usteer_sta_info_timeout;
 }

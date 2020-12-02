@@ -19,10 +19,13 @@
 
 #include "usteer.h"
 #include "node.h"
-
-static bool
-below_assoc_threshold(struct sta_info *si_cur, struct sta_info *si_new)
-{
+/**
+ *
+ * @param si_cur
+ * @param si_new
+ * @return
+ */
+static bool below_assoc_threshold(struct sta_info *si_cur, struct sta_info *si_new){
 	int n_assoc_cur = si_cur->node->n_assoc;
 	int n_assoc_new = si_new->node->n_assoc;
 	bool ref_5g = si_cur->node->freq > 4000;
@@ -43,10 +46,13 @@ below_assoc_threshold(struct sta_info *si_cur, struct sta_info *si_new)
 	}
 	return n_assoc_new <= n_assoc_cur;
 }
-
-static bool
-better_signal_strength(struct sta_info *si_cur, struct sta_info *si_new)
-{
+/**
+ *
+ * @param si_cur
+ * @param si_new
+ * @return
+ */
+static bool better_signal_strength(struct sta_info *si_cur, struct sta_info *si_new){
 	const bool is_better = si_new->signal - si_cur->signal
 				> (int) config.signal_diff_threshold;
 
@@ -61,31 +67,41 @@ better_signal_strength(struct sta_info *si_cur, struct sta_info *si_new)
 	}
 	return is_better;
 }
-
-static bool
-below_load_threshold(struct sta_info *si)
-{
+/**
+ *
+ * @param si
+ * @return
+ */
+static bool below_load_threshold(struct sta_info *si){
 	return si->node->n_assoc >= config.load_kick_min_clients &&
 	       si->node->load > config.load_kick_threshold;
 }
-
-static bool
-has_better_load(struct sta_info *si_cur, struct sta_info *si_new)
-{
+/**
+ *
+ * @param si_cur
+ * @param si_new
+ * @return
+ */
+static bool has_better_load(struct sta_info *si_cur, struct sta_info *si_new){
 	return !below_load_threshold(si_cur) && below_load_threshold(si_new);
 }
-
-static bool
-below_max_assoc(struct sta_info *si)
-{
+/**
+ *
+ * @param si
+ * @return
+ */
+static bool below_max_assoc(struct sta_info *si){
 	struct usteer_node *node = si->node;
 
 	return !node->max_assoc || node->n_assoc < node->max_assoc;
 }
-
-static bool
-is_better_candidate(struct sta_info *si_cur, struct sta_info *si_new)
-{
+/**
+ *
+ * @param si_cur
+ * @param si_new
+ * @return
+ */
+static bool is_better_candidate(struct sta_info *si_cur, struct sta_info *si_new){
 	if (!below_max_assoc(si_new))
 		return false;
 
@@ -93,10 +109,12 @@ is_better_candidate(struct sta_info *si_cur, struct sta_info *si_new)
 	       better_signal_strength(si_cur, si_new) ||
 	       has_better_load(si_cur, si_new);
 }
-
-static struct sta_info *
-find_better_candidate(struct sta_info *si_ref)
-{
+/**
+ *
+ * @param si_ref
+ * @return
+ */
+static struct sta_info * find_better_candidate(struct sta_info *si_ref){
 	struct sta_info *si;
 	struct sta *sta = si_ref->sta;
 
@@ -119,10 +137,13 @@ find_better_candidate(struct sta_info *si_ref)
 	}
 	return NULL;
 }
-
-static int
-snr_to_signal(struct usteer_node *node, int snr)
-{
+/**
+ *
+ * @param node
+ * @param snr
+ * @return
+ */
+static int snr_to_signal(struct usteer_node *node, int snr){
 	int noise = -95;
 
 	if (snr < 0)
@@ -133,10 +154,13 @@ snr_to_signal(struct usteer_node *node, int snr)
 
 	return noise + snr;
 }
-
-bool
-usteer_check_request(struct sta_info *si, enum usteer_event_type type)
-{
+/**
+ *
+ * @param si
+ * @param type
+ * @return
+ */
+bool usteer_check_request(struct sta_info *si, enum usteer_event_type type){
 	struct sta_info *si_new;
 	int min_signal;
 
@@ -185,10 +209,13 @@ usteer_check_request(struct sta_info *si, enum usteer_event_type type)
 
 	return false;
 }
-
-static bool
-is_more_kickable(struct sta_info *si_cur, struct sta_info *si_new)
-{
+/**
+ *
+ * @param si_cur
+ * @param si_new
+ * @return
+ */
+static bool is_more_kickable(struct sta_info *si_cur, struct sta_info *si_new){
 	if (!si_cur)
 		return true;
 
@@ -197,10 +224,12 @@ is_more_kickable(struct sta_info *si_cur, struct sta_info *si_new)
 
 	return si_cur->signal > si_new->signal;
 }
-
-static void
-usteer_roam_set_state(struct sta_info *si, enum roam_trigger_state state)
-{
+/**
+ *
+ * @param si
+ * @param state
+ */
+static void usteer_roam_set_state(struct sta_info *si, enum roam_trigger_state state){
 	static const char * const state_names[] = {
 #define _S(n) [ROAM_TRIGGER_##n] = #n,
 		__roam_trigger_states
@@ -225,10 +254,12 @@ usteer_roam_set_state(struct sta_info *si, enum roam_trigger_state state)
 	MSG(VERBOSE, "Roam trigger SM for client "MAC_ADDR_FMT": state=%s, tries=%d, signal=%d\n",
 	    MAC_ADDR_DATA(si->sta->addr), state_names[state], si->roam_tries, si->signal);
 }
-
-static bool
-usteer_roam_trigger_sm(struct sta_info *si)
-{
+/**
+ *
+ * @param si
+ * @return
+ */
+static bool usteer_roam_trigger_sm(struct sta_info *si){
 	struct sta_info *si_new;
 	int min_signal;
 
@@ -299,10 +330,11 @@ usteer_roam_trigger_sm(struct sta_info *si)
 
 	return false;
 }
-
-static void
-usteer_local_node_roam_check(struct usteer_local_node *ln)
-{
+/**
+ *
+ * @param ln
+ */
+static void usteer_local_node_roam_check(struct usteer_local_node *ln){
 	struct sta_info *si;
 	int min_signal;
 
@@ -331,10 +363,11 @@ usteer_local_node_roam_check(struct usteer_local_node *ln)
 			return;
 	}
 }
-
-static void
-usteer_local_node_snr_kick(struct usteer_local_node *ln)
-{
+/**
+ *
+ * @param ln
+ */
+static void usteer_local_node_snr_kick(struct usteer_local_node *ln){
 	struct sta_info *si;
 	int min_signal;
 
@@ -359,10 +392,11 @@ usteer_local_node_snr_kick(struct usteer_local_node *ln)
 		return;
 	}
 }
-
-void
-usteer_local_node_kick(struct usteer_local_node *ln)
-{
+/**
+ *
+ * @param ln
+ */
+void usteer_local_node_kick(struct usteer_local_node *ln){
 	struct usteer_node *node = &ln->node;
 	struct sta_info *kick1 = NULL, *kick2 = NULL;
 	struct sta_info *candidate = NULL;
