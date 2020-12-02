@@ -26,17 +26,27 @@
 struct ubus_context *ubus_ctx;
 struct usteer_config config = {};
 uint64_t current_time;
-
+/**
+ *
+ */
 LIST_HEAD(node_handlers);
-
+/**
+ *
+ */
 const char * const event_types[__EVENT_TYPE_MAX] = {
 	[EVENT_TYPE_PROBE] = "probe",
 	[EVENT_TYPE_AUTH] = "auth",
 	[EVENT_TYPE_ASSOC] = "assoc",
 };
-
-void debug_msg(int level, const char *func, int line, const char *format, ...)
-{
+/**
+ *
+ * @param level
+ * @param func
+ * @param line
+ * @param format
+ * @param ...
+ */
+void debug_msg(int level, const char *func, int line, const char *format, ...){
 	va_list ap;
 
 	if (config.debug_level < level)
@@ -53,9 +63,13 @@ void debug_msg(int level, const char *func, int line, const char *format, ...)
 	va_end(ap);
 
 }
-
-void debug_msg_cont(int level, const char *format, ...)
-{
+/**
+ *
+ * @param level
+ * @param format
+ * @param ...
+ */
+void debug_msg_cont(int level, const char *format, ...){
 	va_list ap;
 
 	if (config.debug_level < level)
@@ -65,9 +79,10 @@ void debug_msg_cont(int level, const char *format, ...)
 	vfprintf(stderr, format, ap);
 	va_end(ap);
 }
-
-void usteer_init_defaults(void)
-{
+/**
+ *
+ */
+void usteer_init_defaults(void){
 	memset(&config, 0, sizeof(config));
 
 	config.sta_block_timeout = 30 * 1000;
@@ -94,17 +109,21 @@ void usteer_init_defaults(void)
 
 	config.debug_level = MSG_FATAL;
 }
-
-void usteer_update_time(void)
-{
+/**
+ *
+ */
+void usteer_update_time(void){
 	struct timespec ts;
 
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	current_time = (uint64_t) ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
 }
-
-static int usage(const char *prog)
-{
+/**
+ *
+ * @param prog
+ * @return
+ */
+static int usage(const char *prog){
 	fprintf(stderr, "Usage: %s [options]\n"
 		"Options:\n"
 		" -v:           Increase debug level (repeat for more messages):\n"
@@ -119,8 +138,7 @@ static int usage(const char *prog)
 	return 1;
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv){
 	int ch;
 
 	usteer_init_defaults();

@@ -21,20 +21,26 @@
 #define __APMGR_REMOTE_H
 
 #include <libubox/blob.h>
-
+/**
+ *
+ */
 enum {
 	APMSG_ID,
 	APMSG_SEQ,
 	APMSG_NODES,
 	__APMSG_MAX
 };
-
+/**
+ *
+ */
 struct apmsg {
 	uint32_t id;
 	uint32_t seq;
 	struct blob_attr *nodes;
 };
-
+/**
+ *
+ */
 enum {
 	APMSG_NODE_NAME,
 	APMSG_NODE_FREQ,
@@ -48,7 +54,9 @@ enum {
 	APMSG_NODE_SCRIPT_DATA,
 	__APMSG_NODE_MAX
 };
-
+/**
+ *
+ */
 struct apmsg_node {
 	const char *name;
 	const char *ssid;
@@ -61,7 +69,9 @@ struct apmsg_node {
 	struct blob_attr *rrm_nr;
 	struct blob_attr *script_data;
 };
-
+/**
+ *
+ */
 enum {
 	APMSG_STA_ADDR,
 	APMSG_STA_SIGNAL,
@@ -70,7 +80,9 @@ enum {
 	APMSG_STA_CONNECTED,
 	__APMSG_STA_MAX
 };
-
+/**
+ *
+ */
 struct apmsg_sta {
 	uint8_t addr[6];
 
@@ -79,9 +91,26 @@ struct apmsg_sta {
 	int timeout;
 	int seen;
 };
-
+/**
+ *
+ * @param msg
+ * @param data
+ * @return
+ */
 bool parse_apmsg(struct apmsg *msg, struct blob_attr *data);
+/**
+ *
+ * @param msg
+ * @param data
+ * @return
+ */
 bool parse_apmsg_node(struct apmsg_node *msg, struct blob_attr *data);
+/**
+ *
+ * @param msg
+ * @param data
+ * @return
+ */
 bool parse_apmsg_sta(struct apmsg_sta *msg, struct blob_attr *data);
 
 #endif

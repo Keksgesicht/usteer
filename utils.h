@@ -47,8 +47,21 @@ enum usteer_debug {
 	MSG_NETWORK,
 	MSG_DEBUG_ALL,
 };
-
+/**
+ *
+ * @param level
+ * @param func
+ * @param line
+ * @param format
+ * @param ...
+ */
 extern void debug_msg(int level, const char *func, int line, const char *format, ...);
+/**
+ *
+ * @param level
+ * @param format
+ * @param ...
+ */
 extern void debug_msg_cont(int level, const char *format, ...);
 
 #define __usteer_init __attribute__((constructor))

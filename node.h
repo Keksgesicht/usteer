@@ -21,7 +21,9 @@
 #define __APMGR_NODE_H
 
 #include "usteer.h"
-
+/**
+ *
+ */
 enum local_req_state {
 	REQ_IDLE,
 	REQ_CLIENTS,
@@ -29,7 +31,9 @@ enum local_req_state {
 	REQ_RRM_GET_OWN,
 	__REQ_MAX
 };
-
+/**
+ *
+ */
 struct usteer_local_node {
 	struct usteer_node node;
 
@@ -61,8 +65,13 @@ struct usteer_local_node {
 		bool status_complete;
 	} netifd;
 };
-
+/**
+ *
+ */
 struct interface;
+/**
+ *
+ */
 struct usteer_remote_node {
 	struct avl_node avl;
 	const char *name;
@@ -72,8 +81,13 @@ struct usteer_remote_node {
 
 	int check;
 };
-
+/**
+ *
+ */
 extern struct avl_tree local_nodes;
+/**
+ *
+ */
 extern struct avl_tree remote_nodes;
 
 #endif

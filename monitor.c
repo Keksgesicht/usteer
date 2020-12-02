@@ -49,7 +49,9 @@ struct ip_header {
 };
 #define IP_HL(ip)		(((ip)->ip_vhl) & 0x0f)
 #define IP_V(ip)		(((ip)->ip_vhl) >> 4)
-
+/**
+ * 
+ */
 struct udp_header {
 	uint16_t uh_sport;       /* source port */
 	uint16_t uh_dport;       /* destination port */
@@ -57,9 +59,11 @@ struct udp_header {
 	uint16_t uh_sum;     /* udp checksum */
 };
 
-
-static void
-decode_sta(struct blob_attr *data)
+/**
+ *
+ * @param data
+ */
+static void decode_sta(struct blob_attr *data)
 {
 	struct apmsg_sta msg;
 
@@ -69,9 +73,11 @@ decode_sta(struct blob_attr *data)
 	fprintf(stderr, "\t\tSta "MAC_ADDR_FMT" signal=%d connected=%d timeout=%d\n",
 		MAC_ADDR_DATA(msg.addr), msg.signal, msg.connected, msg.timeout);
 }
-
-static void
-decode_node(struct blob_attr *data)
+/**
+ *
+ * @param data
+ */
+static void decode_node(struct blob_attr *data)
 {
 	struct apmsg_node msg;
 	struct blob_attr *cur;
@@ -103,9 +109,11 @@ decode_node(struct blob_attr *data)
 	blob_for_each_attr(cur, msg.stations, rem)
 		decode_sta(cur);
 }
-
-static void
-decode_packet(struct blob_attr *data)
+/**
+ *
+ * @param data
+ */
+static void decode_packet(struct blob_attr *data)
 {
 	struct apmsg msg;
 	struct blob_attr *cur;
@@ -121,10 +129,14 @@ decode_packet(struct blob_attr *data)
 	blob_for_each_attr(cur, msg.nodes, rem)
 		decode_node(cur);
 }
-
-static void
-recv_packet(unsigned char *user, const struct pcap_pkthdr *hdr,
-	    const unsigned char *packet)
+/**
+ *
+ * @param user
+ * @param hdr
+ * @param packet
+ */
+static void recv_packet(unsigned char *user, const struct pcap_pkthdr *hdr,
+	                    const unsigned char *packet)
 {
 	char addr[INET_ADDRSTRLEN];
 	struct ip_header *ip;

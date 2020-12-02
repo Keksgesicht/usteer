@@ -55,15 +55,20 @@ struct usteer_local_node;
 /**
  * A node struct comprising:
  * 1. AVL node (AVL tree from libubox/avl.h)
- * 2. list_head root of AVL tree
- * 3. type
- * 4. ??
- * 5. ??
+ * 2. list.h, sta information
+ * 3. type of the usteer node, enum
+ * 4. ?? blob msg attributes
+ * 5. ?? blob msg some kind of script data
  * 6. wifi ssid
  * 7~ general wifi info: frequency, noise ..
  */
 struct usteer_node {
+    /**
+    * This element is a member of a avl-tree. It must be contained in all
+    * larger structs that should be put into a tree.
+    */
 	struct avl_node avl;
+
 	struct list_head sta_info;
 
 	enum usteer_node_type type;
@@ -133,11 +138,11 @@ struct usteer_node_handler {
 	void (*update_node)(struct usteer_node *);
 	void (*update_sta)(struct usteer_node *, struct sta_info *);
 	void (*get_survey)(struct usteer_node *, void *,
-			   void (*cb)(void *priv, struct usteer_survey_data *d));
+			           void (*cb)(void *priv, struct usteer_survey_data *d));
 	void (*get_freqlist)(struct usteer_node *, void *,
-			     void (*cb)(void *priv, struct usteer_freq_data *f));
-	int (*scan)(struct usteer_node *, struct usteer_scan_request *,
-		    void *, void (*cb)(void *priv, struct usteer_scan_result *r));
+	                     void (*cb)(void *priv, struct usteer_freq_data *f));
+	int (*scan)(struct usteer_node *, struct usteer_scan_request *, void *,
+	            void (*cb)(void *priv, struct usteer_scan_result *r));
 };
 
 struct usteer_config {
@@ -201,7 +206,9 @@ enum roam_trigger_state {
 	__roam_trigger_states
 #undef _S
 };
-
+/**
+ *
+ */
 struct sta_info {
 	struct list_head list;
 	struct list_head node_list;
@@ -237,54 +244,185 @@ struct sta {
 
 	uint8_t addr[6];
 };
-
+/**
+ *
+ */
 extern struct ubus_context *ubus_ctx;
+/**
+ *
+ */
 extern struct usteer_config config;
+/**
+ *
+ */
 extern struct list_head node_handlers;
+/**
+ *
+ */
 extern struct avl_tree stations;
+/**
+ *
+ */
 extern uint64_t current_time;
+/**
+ *
+ */
 extern const char * const event_types[__EVENT_TYPE_MAX];
-
+/**
+ *
+ */
 void usteer_update_time(void);
+/**
+ *
+ */
 void usteer_init_defaults(void);
+/**
+ *
+ * @param node
+ * @param addr
+ * @param type
+ * @param freq
+ * @param signal
+ * @return
+ */
 bool usteer_handle_sta_event(struct usteer_node *node, const uint8_t *addr,
-			    enum usteer_event_type type, int freq, int signal);
-
+                             enum usteer_event_type type, int freq, int signal);
+/**
+ *
+ * @param ctx
+ */
 void usteer_local_nodes_init(struct ubus_context *ctx);
+/**
+ *
+ * @param ln
+ */
 void usteer_local_node_kick(struct usteer_local_node *ln);
-
+/**
+ *
+ * @param ctx
+ */
 void usteer_ubus_init(struct ubus_context *ctx);
+/**
+ *
+ * @param si
+ */
 void usteer_ubus_kick_client(struct sta_info *si);
+/**
+ *
+ * @param si
+ * @return
+ */
 int usteer_ubus_trigger_client_scan(struct sta_info *si);
+/**
+ *
+ * @param si
+ * @return
+ */
 int usteer_ubus_notify_client_disassoc(struct sta_info *si);
-
+/**
+ *
+ * @param addr
+ * @param create
+ * @return
+ */
 struct sta *usteer_sta_get(const uint8_t *addr, bool create);
+/**
+ *
+ * @param sta
+ * @param node
+ * @param create
+ * @return
+ */
 struct sta_info *usteer_sta_info_get(struct sta *sta, struct usteer_node *node, bool *create);
-
+/**
+ *
+ * @param si
+ * @param timeout
+ */
 void usteer_sta_info_update_timeout(struct sta_info *si, int timeout);
+/**
+ *
+ * @param si
+ * @param signal
+ * @param avg
+ */
 void usteer_sta_info_update(struct sta_info *si, int signal, bool avg);
-
-static inline const char *usteer_node_name(struct usteer_node *node)
-{
+/**
+ *
+ * @param node
+ * @return
+ */
+static inline const char *usteer_node_name(struct usteer_node *node){
 	return node->avl.key;
 }
+/**
+ *
+ * @param dest
+ * @param val
+ */
 void usteer_node_set_blob(struct blob_attr **dest, struct blob_attr *val);
-
+/**
+ *
+ * @param si
+ * @param type
+ * @return
+ */
 bool usteer_check_request(struct sta_info *si, enum usteer_event_type type);
-
+/**
+ *
+ * @param data
+ */
 void config_set_interfaces(struct blob_attr *data);
+/**
+ *
+ * @param buf
+ */
 void config_get_interfaces(struct blob_buf *buf);
-
+/**
+ *
+ * @param data
+ */
 void config_set_node_up_script(struct blob_attr *data);
+/**
+ *
+ * @param buf
+ */
 void config_get_node_up_script(struct blob_buf *buf);
-
+/**
+ *
+ * @return
+ */
 int usteer_interface_init(void);
+/**
+ *
+ * @param name
+ */
 void usteer_interface_add(const char *name);
+/**
+ *
+ * @param node
+ */
 void usteer_sta_node_cleanup(struct usteer_node *node);
+/**
+ *
+ * @param si
+ */
 void usteer_send_sta_update(struct sta_info *si);
-
+/**
+ *
+ * @return
+ */
 int usteer_lua_init(void);
+/**
+ *
+ * @return
+ */
 int usteer_lua_ubus_init(void);
+/**
+ *
+ * @param name
+ * @param arg
+ */
 void usteer_run_hook(const char *name, const char *arg);
 
 #endif
