@@ -79,8 +79,17 @@ struct usteer_node {
 
 	int freq;
 	int noise;
+
+	/**
+	 * The amount of clients that are associated/connected to this node.
+	 */
 	int n_assoc;
+	
+	/**
+	 * The maximum number of clients that can be connected to this node.
+	 */
 	int max_assoc;
+	
 	int load;
 };
 
@@ -151,6 +160,7 @@ struct usteer_node_handler {
  */
 struct usteer_config {
 
+			/* -----------< logging >-----------*/
 	/**
 	 * When set to true, usteer will output the log messages to the syslog
 	 * insted of the default, stderr.
@@ -164,6 +174,8 @@ struct usteer_config {
 	 */
 	uint32_t debug_level;
 
+
+			/* -----------< sta >-----------*/
 	uint32_t sta_block_timeout;
 	uint32_t local_sta_timeout;
 	uint32_t local_sta_update;
@@ -179,24 +191,76 @@ struct usteer_config {
 
 	int32_t min_snr;
 	int32_t min_connect_snr;
+
+	/**
+	 * Threshold how much better the signal strength of a new node has to be so
+	 * usteer determines it as a better signal. A signal is better if:
+	 * 
+	 * 		new_signal - current_signal > signal_diff_threshold
+	 * 
+	 * Default value: 0
+	 */
 	uint32_t signal_diff_threshold;
 
+	
+			/* -----------< roaming >-----------*/
 	int32_t roam_scan_snr;
-	uint32_t roam_scan_tries;
-	uint32_t roam_scan_interval;
 
+	/**
+	 * The amount of attempts a station should take to attempt to roam before kicking.
+	 */
+	uint32_t roam_scan_tries;
+
+	uint32_t roam_scan_interval;
 	int32_t roam_trigger_snr;
 	uint32_t roam_trigger_interval;
-
 	uint32_t roam_kick_delay;
 
+
+	/**
+	 * The time in milliseconds usteer ignores requestes from a station after
+	 * it was created. If:
+	 * 
+	 * 		si->created + initial_connect_delay > current_time
+	 * 
+	 * requests are ignored. Default value: 0
+	 */
 	uint32_t initial_connect_delay;
 
+
+			/* -----------< load-kicking >-----------*/
+	/**
+	 * When enabled, nodes that exceed the 'load_kick_threshold'
+	 * will be automatically kicked. Default value: false
+	 */
 	bool load_kick_enabled;
+
+	/**
+	 * The threshold a node has to exceed in order to be load-kicked.
+	 * Default value: 75
+	 */
 	uint32_t load_kick_threshold;
+
+	/**
+	 * Default value: 10k
+	 */
 	uint32_t load_kick_delay;
+	
+	/**
+	 * When load-kicking is enabled, this property determines at which
+	 * point a node stops to load-kick clients based on the amount of
+	 * connected clients. If the number of connected clients is less than this
+	 * property, no clients will be kicked even if they are over the load-threshold.
+	 * 
+	 * Default value: 10
+	 */
 	uint32_t load_kick_min_clients;
+
+	/**
+	 * The reason why a client was load-kicked. Default value: 5 (WLAN_REASON_DISASSOC_AP_BUSY)
+	 */
 	uint32_t load_kick_reason_code;
+
 
 	const char *node_up_script;
 };
@@ -314,7 +378,7 @@ struct sta {
 	uint8_t addr[6];
 };
 
-/* -----------< See 'main.c'. >-----------*/
+		/* -----------< See 'main.c'. >-----------*/
 extern struct ubus_context *ubus_ctx;
 extern struct usteer_config config;
 extern struct list_head node_handlers;
@@ -326,11 +390,11 @@ extern const char * const event_types[__EVENT_TYPE_MAX];
  */
 extern struct avl_tree stations;
 
-/* -----------< See 'main.c'. >-----------*/
+		/* -----------< See 'main.c'. >-----------*/
 void usteer_update_time(void);
 void usteer_init_defaults(void);
 
-/* -----------< See 'sta.c'. >-----------*/
+		/* -----------< See 'sta.c'. >-----------*/
 bool usteer_handle_sta_event(struct usteer_node *node, const uint8_t *addr,
                              enum usteer_event_type type, int freq, int signal);
 /**
