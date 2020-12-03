@@ -23,7 +23,11 @@
 #define MSG(_nr, _format, ...) debug_msg(MSG_##_nr, __func__, __LINE__, _format, ##__VA_ARGS__)
 #define MSG_CONT(_nr, _format, ...) debug_msg_cont(MSG_##_nr, _format, ##__VA_ARGS__)
 
+/**
+ * Used to format into a string in MAC-address format.
+ */
 #define MAC_ADDR_FMT "%02x:%02x:%02x:%02x:%02x:%02x"
+
 #define MAC_ADDR_DATA(_a) \
 	((const uint8_t *)(_a))[0], \
 	((const uint8_t *)(_a))[1], \

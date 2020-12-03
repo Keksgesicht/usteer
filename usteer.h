@@ -206,8 +206,10 @@ enum roam_trigger_state {
 	__roam_trigger_states
 #undef _S
 };
+
 /**
- *
+ * Holds state and information for a specific station. A station is a connected client
+ * or router/access point.
  */
 struct sta_info {
 	struct list_head list;
@@ -220,6 +222,11 @@ struct sta_info {
 
 	struct sta_info_stats stats[__EVENT_TYPE_MAX];
 	uint64_t created;
+
+	/**
+	 * Set to the current time as UNIX-Timestamp when an sta_info_update is 
+	 * performed on this sta_info instance.
+	 */
 	uint64_t seen;
 	int signal;
 
@@ -235,13 +242,28 @@ struct sta_info {
 	uint8_t connected : 2;
 };
 
+/**
+ * Describes a specific station.
+ */
 struct sta {
 	struct avl_node avl;
 	struct list_head nodes;
 
+	/**
+	 * Set to 1 when an sta_event occurs with a frequency 
+	 * below 4000.
+	 */
 	uint8_t seen_2ghz : 1;
+	
+	/**
+	 * Set to 1 when an sta_event occurs with a frequency greater
+	 * or equal to 4000. See 'seen_2ghz' in 'sta'.
+	 */
 	uint8_t seen_5ghz : 1;
 
+	/**
+	 * The MAC address of this station.
+	 */
 	uint8_t addr[6];
 };
 /**
