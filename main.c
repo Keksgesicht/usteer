@@ -23,7 +23,12 @@
 
 #include "usteer.h"
 
+/**
+ * The ubus context. This context is obtained upon setup when connecting
+ * to ubus.
+ */
 struct ubus_context *ubus_ctx;
+
 struct usteer_config config = {};
 
 /**

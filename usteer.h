@@ -145,8 +145,23 @@ struct usteer_node_handler {
 	            void (*cb)(void *priv, struct usteer_scan_result *r));
 };
 
+/**
+ * The configuration of the usteer instance. Upon startup, a config
+ * is created and initialized to be all 0.
+ */
 struct usteer_config {
+
+	/**
+	 * When set to true, usteer will output the log messages to the syslog
+	 * insted of the default, stderr.
+	 */
 	bool syslog;
+
+	/**
+	 * The debug level determines which log messages are generated. The higher
+	 * the debug level, the more messages are generated. See function 'usage' in main.c
+	 * for the possible debug levels and their included messages.
+	 */
 	uint32_t debug_level;
 
 	uint32_t sta_block_timeout;
@@ -216,11 +231,20 @@ struct sta_info {
 	struct list_head node_list;
 
 	struct usteer_node *node;
+
+	/**
+	 * The station that corresponds to this station information instance.
+	 */
 	struct sta *sta;
 
 	struct usteer_timeout timeout;
 
 	struct sta_info_stats stats[__EVENT_TYPE_MAX];
+
+	/**
+	 * Set to the time when this station was created or instantiated. The time
+	 * is stored as a UNIX-timestamp.
+	 */
 	uint64_t created;
 
 	/**
@@ -228,17 +252,40 @@ struct sta_info {
 	 * performed on this sta_info instance.
 	 */
 	uint64_t seen;
+
 	int signal;
 
 	enum roam_trigger_state roam_state;
 	uint8_t roam_tries;
 	uint64_t roam_event;
+
+	/**
+	 * Set to the time when this station/client was kicked as a UNIX-timestamp.
+	 */
 	uint64_t roam_kick;
+
 	uint64_t roam_scan_done;
 
+	/**
+	 * This counter keeps track of how many clients this station has kicked.
+	 */
 	int kick_count;
 
+	/**
+	 * Determines the frequency this station operates on.
+	 * 
+	 * 		0 = 2.4 GHz
+	 * 		1 = 5   GHz
+	 */
 	uint8_t scan_band : 1;
+
+	/**
+	 * Defines wether this client is connected or not.
+	 * 
+	 * 		0 = Not Connected
+	 * 		1 = Connected														Note: Not 100% sure
+	 * 		2 = Connected to this station										Note: Not 100% sure
+	 */
 	uint8_t connected : 2;
 };
 
@@ -266,47 +313,24 @@ struct sta {
 	 */
 	uint8_t addr[6];
 };
-/**
- *
- */
+
+/* -----------< See 'main.c'. >-----------*/
 extern struct ubus_context *ubus_ctx;
-/**
- *
- */
 extern struct usteer_config config;
-/**
- *
- */
 extern struct list_head node_handlers;
+extern uint64_t current_time;
+extern const char * const event_types[__EVENT_TYPE_MAX];
+
 /**
- *
+ * A tree containing all currently registered stations.
  */
 extern struct avl_tree stations;
-/**
- *
- */
-extern uint64_t current_time;
-/**
- *
- */
-extern const char * const event_types[__EVENT_TYPE_MAX];
-/**
- *
- */
+
+/* -----------< See 'main.c'. >-----------*/
 void usteer_update_time(void);
-/**
- *
- */
 void usteer_init_defaults(void);
-/**
- *
- * @param node
- * @param addr
- * @param type
- * @param freq
- * @param signal
- * @return
- */
+
+/* -----------< See 'sta.c'. >-----------*/
 bool usteer_handle_sta_event(struct usteer_node *node, const uint8_t *addr,
                              enum usteer_event_type type, int freq, int signal);
 /**
