@@ -25,7 +25,13 @@
 
 struct ubus_context *ubus_ctx;
 struct usteer_config config = {};
+
+/**
+ * The current time as a UNIX-timestamp. This value is updated by the function
+ * 'usteer_update_time'.
+ */
 uint64_t current_time;
+
 /**
  *
  */
@@ -79,8 +85,9 @@ void debug_msg_cont(int level, const char *format, ...){
 	vfprintf(stderr, format, ap);
 	va_end(ap);
 }
+
 /**
- *
+ * Initialize the usteer config with default values.
  */
 void usteer_init_defaults(void){
 	memset(&config, 0, sizeof(config));
@@ -109,8 +116,10 @@ void usteer_init_defaults(void){
 
 	config.debug_level = MSG_FATAL;
 }
+
 /**
- *
+ * Updates the 'current_time' field to the current time represented
+ * as a UNIX-timestamp.
  */
 void usteer_update_time(void){
 	struct timespec ts;
@@ -118,10 +127,12 @@ void usteer_update_time(void){
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	current_time = (uint64_t) ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
 }
+
 /**
- *
- * @param prog
- * @return
+ * Prints out the available usteer command line parameters.
+ * 
+ * @param prog This string is formatted into the printed out arguments.
+ * @return Returns 1.
  */
 static int usage(const char *prog){
 	fprintf(stderr, "Usage: %s [options]\n"
@@ -143,27 +154,38 @@ int main(int argc, char **argv){
 
 	usteer_init_defaults();
 
+	/**
+	 * Parse the passed command line arguments.
+	 */
 	while ((ch = getopt(argc, argv, "i:sv")) != -1) {
 		switch(ch) {
+		/* Argument -v, increase debug logging level */
 		case 'v':
 			config.debug_level++;
 			break;
+		/* Argument -s, output log messages to syslog instead of stderr */
 		case 's':
 			config.syslog = true;
 			break;
+		/* Argument -i <name>, connect to other instances on interface <name> */
 		case 'i':
 			usteer_interface_add(optarg);
 			break;
+		/* No argument matched, print out all available command line arguments */
 		default:
 			return usage(argv[0]);
 		}
 	}
 
+	/* Open a connection to the system logger */
 	openlog("usteer", 0, LOG_USER);
 
+	/* Initialize the current time variable */
 	usteer_update_time();
+
 	uloop_init();
 
+	/* Connect to ubus and retrieve ubus context */
 	ubus_ctx = ubus_connect(NULL);
 	if (!ubus_ctx) {
 		fprintf(stderr, "Failed to connect to ubus\n");
