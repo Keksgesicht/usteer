@@ -559,9 +559,10 @@ static void usteer_send_update_timer(struct uloop_timeout *t){
 	usteer_update_send(c);
 	usteer_check_timeout();
 }
+
 /**
- *
- * @return
+ * Most probably a semi-random number generator.
+ * @return Returns either 0 or -1
  */
 static int usteer_init_local_id(void){
 	FILE *f;

@@ -22,12 +22,14 @@
 
 #include <libubox/avl.h>
 #include <libubox/uloop.h>
+
 /**
  * AVL Node for timeout
  */
 struct usteer_timeout {
 	struct avl_node node;
 };
+
 /**
  * Queue with avl nodes
  */
@@ -36,19 +38,23 @@ struct usteer_timeout_queue {
 	struct uloop_timeout timeout;
 	void (*cb)(struct usteer_timeout_queue *q, struct usteer_timeout *t);
 };
+
 /**
- * Check if node t has a previous node
- * @param t
- * @return bool
+ * Check if the node list of the given timeout instance is not empty.
+ * 
+ * @param t The timeout to check.
+ * @return bool True if the node list of the given timeout is not NULL.
  */
 static inline bool usteer_timeout_isset(struct usteer_timeout *t){
 	return t->node.list.prev != NULL;
 }
+
 /**
  * Initialize time out queue
  * @param q
  */
 void usteer_timeout_init(struct usteer_timeout_queue *q);
+
 /**
  * Set time out
  * @param q where to set time out
@@ -56,12 +62,14 @@ void usteer_timeout_init(struct usteer_timeout_queue *q);
  * @param msecs time out in milli seconds
  */
 void usteer_timeout_set(struct usteer_timeout_queue *q, struct usteer_timeout *t,int msecs);
+
 /**
  * Cancel time out
  * @param q where to cancel
  * @param t node to cancel
  */
 void usteer_timeout_cancel(struct usteer_timeout_queue *q, struct usteer_timeout *t);
+
 /**
  * Flush queue
  * @param q

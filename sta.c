@@ -18,12 +18,14 @@
  */
 
 #include "usteer.h"
+
 /**
- *
- * @param k1
- * @param k2
- * @param ptr
- * @return
+ * Compares two mac address by comparing the memory.
+ * 
+ * @param k1 Pointer to the first MAC-address.
+ * @param k2 Pointer to the second MAC-address.
+ * @param ptr Parameter unused.
+ * @return Returns true iff the two MAC-addresses match.
  */
 static int avl_macaddr_cmp(const void *k1, const void *k2, void *ptr){
 	return memcmp(k1, k2, 6);
@@ -48,8 +50,10 @@ static void usteer_sta_del(struct sta *sta){
 }
 
 /**
- *
- * @param si
+ * Deletes the given station information. If the associated station
+ * has no connected nodes, the station is also deleted.
+ * 
+ * @param si The station information to delete.
  */
 static void usteer_sta_info_del(struct sta_info *si){
 	struct sta *sta = si->sta;
@@ -65,6 +69,7 @@ static void usteer_sta_info_del(struct sta_info *si){
 	if (list_empty(&sta->nodes))
 		usteer_sta_del(sta);
 }
+
 /**
  *
  * @param node
@@ -78,6 +83,7 @@ void usteer_sta_node_cleanup(struct usteer_node *node){
 	list_for_each_entry_safe(si, tmp, &node->sta_info, node_list)
 		usteer_sta_info_del(si);
 }
+
 /**
  *
  * @param q
@@ -216,10 +222,16 @@ struct sta * usteer_sta_get(const uint8_t *addr, bool create){
 }
 
 /**
- *
- * @param si
- * @param signal
- * @param avg
+ * Updates the given station information instance. If the station has
+ * a signal, the station signal is updated, to either the given parameter 'signal',
+ * or to NO_SIGNAL if 'avg' is false and the station is connected and has a signal.
+ * 
+ * Also, the 'seen' field is updated to the current time. Also updates the station
+ * information timeout.
+ * 
+ * @param si The station information intance to update.
+ * @param signal ?
+ * @param avg ?
  */
 void usteer_sta_info_update(struct sta_info *si, int signal, bool avg){
 	/* ignore probe request signal when connected */
@@ -232,6 +244,7 @@ void usteer_sta_info_update(struct sta_info *si, int signal, bool avg){
 	si->seen = current_time;
 	usteer_sta_info_update_timeout(si, config.local_sta_timeout);
 }
+
 /**
  *
  * @param node
@@ -253,6 +266,7 @@ bool usteer_handle_sta_event(struct usteer_node *node, const uint8_t *addr,
 	if (!sta)
 		return -1;
 
+	/* Based on the frequency, update the station that this frequency has been seen from the station. */
 	if (freq < 4000)
 		sta->seen_2ghz = 1;
 	else
@@ -283,6 +297,7 @@ bool usteer_handle_sta_event(struct usteer_node *node, const uint8_t *addr,
 
 	return ret;
 }
+
 /**
  *
  */

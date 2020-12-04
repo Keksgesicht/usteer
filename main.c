@@ -29,6 +29,12 @@
  */
 struct ubus_context *ubus_ctx;
 
+/**
+ * The usteer configuration that holds all selected and active configuration
+ * settings and properties. Upon startup, the config is initialized to its default
+ * values. After that, command line arguments and config parameters are loaded
+ * and override the default values.
+ */
 struct usteer_config config = {};
 
 /**
@@ -41,6 +47,7 @@ uint64_t current_time;
  *
  */
 LIST_HEAD(node_handlers);
+
 /**
  *
  */
@@ -49,17 +56,25 @@ const char * const event_types[__EVENT_TYPE_MAX] = {
 	[EVENT_TYPE_AUTH] = "auth",
 	[EVENT_TYPE_ASSOC] = "assoc",
 };
+
 /**
- *
- * @param level
- * @param func
- * @param line
- * @param format
- * @param ...
+ * Prints out the given debug log message if the given debug level is greater than the debug_level
+ * in the usteer config. Uses the format string and the given parameters to format into the formatting string.
+ * 
+ * Also prints out the function of this message and the given line. The message is printed in the following format:
+ * 
+ * "[$func:$line] $format(args)"
+ * 
+ * @param level The debug level of this log message.
+ * @param func The function of this log message.
+ * @param line The line number of this log message.
+ * @param format The formatting string of the message itself.
+ * @param ... Arguments to format into the message body.
  */
 void debug_msg(int level, const char *func, int line, const char *format, ...){
 	va_list ap;
 
+	/* Debug level of this message is less than wanted level, don't print message */
 	if (config.debug_level < level)
 		return;
 
@@ -67,22 +82,29 @@ void debug_msg(int level, const char *func, int line, const char *format, ...){
 		fprintf(stderr, "[%s:%d] ", func, line);
 
 	va_start(ap, format);
+
+	/* Based on the config, print either to the syslog or stderr */
 	if (config.syslog)
 		vsyslog(level >= MSG_DEBUG ? LOG_DEBUG : LOG_INFO, format, ap);
 	else
 		vfprintf(stderr, format, ap);
+
 	va_end(ap);
 
 }
+
 /**
- *
- * @param level
- * @param format
- * @param ...
+ * Prints out the given log message if the given debug level is greater than the debug_level
+ * in the usteer config. Uses the format string and the given parameters to format into the string.
+ * 
+ * @param level The debug level of this log message.
+ * @param format The format string for this message.
+ * @param ... An argument list for the formatting string.
  */
 void debug_msg_cont(int level, const char *format, ...){
 	va_list ap;
 
+	/* Debug level of this message is less than wanted level, don't print message */
 	if (config.debug_level < level)
 		return;
 
@@ -157,6 +179,7 @@ static int usage(const char *prog){
 int main(int argc, char **argv){
 	int ch;
 
+	/* Initialize the usteer config with the default values. */
 	usteer_init_defaults();
 
 	/**
