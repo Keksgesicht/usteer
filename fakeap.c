@@ -179,26 +179,29 @@ static void init_station(struct sta_data *sta){
 	sta_schedule_probe(sta);
 }
 /**
- *
- * @param ref
- * @param n
+ * Create n instances of station
+ * @param ref source
+ * @param n instances
  */
 static void create_stations(struct sta_data *ref, int n){
-	struct sta_data *sta;
+	struct sta_data *sta; // buffer
 	int i;
 
-	tq.cb = sta_probe;
+	tq.cb = sta_probe; // pointer function
 	sta = calloc(n, sizeof(*sta));
 	for (i = 0; i < n; i++) {
+	    /**
+	     * dest, src, size_t
+	     */
 		memcpy(sta, ref, sizeof(*sta));
 		init_station(sta);
-		sta++;
+		sta++; // incerease pointer
 	}
 }
 /**
- *
+ * Print usage
  * @param prog
- * @return
+ * @return 1 if not successful
  */
 static int usage(const char *prog){
 	fprintf(stderr, "Usage: %s <options>\n"
@@ -213,14 +216,17 @@ static int usage(const char *prog){
 	return 1;
 }
 /**
- *
+ * Used for 'usage()' in main, if values are incorrect, display 'usage
  * @param var
- * @param str
+ * @param str optarg string
  * @return
  */
 static bool parse_var(struct var *var, const char *str){
 	char *err;
 
+	/**
+	 * converts string into unsigned long int
+	 */
 	var->min = strtoul(str, &err, 0);
 	var->max = var->min;
 	if (!*err)
@@ -236,29 +242,38 @@ static bool parse_var(struct var *var, const char *str){
 	return false;
 }
 /**
- *
- * @param ctx
- * @param obj
- * @param req
+ * Sends a reply to an incoming object method call
+ * @param ctx ubus context
+ * @param obj ubus object
+ * @param req ubus request data
  * @param method
  * @param msg
- * @return
+ * @return 0 if successful
  */
 static int hostapd_bss_get_clients(struct ubus_context *ctx, struct ubus_object *obj,
 			                       struct ubus_request_data *req, const char *method,
 			                       struct blob_attr *msg){
-	blob_buf_init(&b, 0);
+    /**
+     * init buffer
+     * b = blob_buffer
+     */
+    blob_buf_init(&b, 0);
 	ubus_send_reply(ctx, req, b.head);
 	return 0;
 }
 /**
- *
+ * .name="get_clients",
+ * .handler=hostapd_bss_get_clients,
+ * .tags=0
  */
 static const struct ubus_method bss_methods[] = {
 	UBUS_METHOD_NOARG("get_clients", hostapd_bss_get_clients),
 };
 /**
- *
+ * .name = "hostapd_bss",
+ * .id = 0,
+ * .n_methods = (sizeof(bss_methods) / sizeof((bss_methods)[0])),
+ * .methods = bss_methods
  */
 static struct ubus_object_type bss_object_type = UBUS_OBJECT_TYPE("hostapd_bss", bss_methods);
 /**
@@ -272,12 +287,19 @@ static struct ubus_object bss_obj = {
 };
 
 int main(int argc, char **argv){
+    /**
+     * inititalize sdata
+     */
 	struct sta_data sdata = {
 		.signal = { 0, -30, -30 },
 		.probe = { 0, 1000, 30000 },
 	};
 	int ch;
-
+    /**
+     * loop runner for i/o. Gets in charge of polling the different file descriptors you have added to it,
+     * gets in charge of running timers, and helps you manage child processes.
+     * https://openwrt.org/docs/techref/libubox
+     */
 	uloop_init();
 
 	r_fd = fopen("/dev/urandom", "r");
@@ -285,49 +307,74 @@ int main(int argc, char **argv){
 		perror("fopen");
 		return 1;
 	}
-
+	/**
+	 * initialize usteer_timeout_queue tq
+	 */
 	usteer_timeout_init(&tq);
-
+    /**
+     * get arguments
+     */
 	while ((ch = getopt(argc, argv, "p:s:f:n:v")) != -1) {
 		switch(ch) {
-		case 'p':
+		case 'p'://probing interval
+		    /**
+		     * optarg = For communication from 'getopt' to the caller.
+             * When 'getopt' finds an option that takes an argument,
+             * the argument value is returned here.
+		     */
 			if (!parse_var(&sdata.probe, optarg))
 				goto usage;
 			break;
-		case 's':
+		case 's'://signal strength
 			if (!parse_var(&sdata.signal, optarg))
 				goto usage;
 			break;
-		case 'f':
+		case 'f': //frequency
 			freq = atoi(optarg);
 			break;
-		case 'n':
+		case 'n': //number of stations
 			create_stations(&sdata, atoi(optarg));
 			break;
-		case 'v':
+		case 'v'://verbosity
 			verbose++;
 			break;
 		default:
 			goto usage;
 		}
 	}
-
+    /**
+     * get ubus context
+     */
 	ubus_ctx = ubus_connect(NULL);
+	/**
+	 * if context doesnt exist
+	 */
 	if (!ubus_ctx) {
 		fprintf(stderr, "Failed to connect to ubus\n");
 		return 1;
 	}
 
+	/**
+	 * add ubus context into uloop (see uloop.h)
+	 */
 	ubus_add_uloop(ubus_ctx);
-
+    /**
+     * try to make an object visible to remote connections
+     */
 	if (ubus_add_object(ubus_ctx, &bss_obj)) {
 		fprintf(stderr, "Failed to register AP ubus object\n");
 		return 1;
 	}
+	/**
+	 * start uloop
+	 */
 	uloop_run();
 
 	uloop_done();
 	return 0;
 usage:
+    /**
+     * if wrong arguments were supplied
+     */
 	return usage(argv[0]);
 }

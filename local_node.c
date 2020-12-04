@@ -32,7 +32,15 @@
 #include "node.h"
 
 /**
- *
+ * struct avl_tree local_nodes = {
+ *                              .list_head={
+ *                                          &(local_nodes.list_head),
+ *                                          &(local_nodes.list_head)
+ *                                          },
+ *                              .comp=avl_strcmp,
+ *                              .allow_dups=0,
+ *                              .cmp_ptr=((void *) 0)
+ *                              }
  */
 AVL_TREE(local_nodes, avl_strcmp, false, NULL);
 
