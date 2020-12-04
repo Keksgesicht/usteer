@@ -32,33 +32,54 @@ enum local_req_state {
 	__REQ_MAX
 };
 /**
- *
+ * node on a local station
  */
 struct usteer_local_node {
+    /**
+     * see usteer.h
+     */
 	struct usteer_node node;
-
+    /**
+     * ubus_subscriber in libubus.h
+     */
 	struct ubus_subscriber ev;
+	/**
+	 * see uloop.h
+	 */
 	struct uloop_timeout update;
 
 	const char *iface;
 	int ifindex;
 	int wiphy;
-
+    /**
+     * from libubus.h
+     */
 	struct ubus_request req;
+	/**
+	 * see uloop.h
+	 */
 	struct uloop_timeout req_timer;
 	int req_state;
 
-	uint32_t obj_id;
+	uint32_t obj_id; // object id
 
 	float load_ewma;
 	int load_thr_count;
 
 	uint64_t time, time_busy;
-
+    /**
+     * nl80211 is the new 802.11 netlink interface public header.
+     * https://wireless.wiki.kernel.org/en/developers/Documentation/nl80211
+     */
 	struct {
 		bool present;
 		struct uloop_timeout update;
 	} nl80211;
+	/**
+	 * Network Interface Daemon
+	 * netifd is an RPC-capable daemon
+	 * https://openwrt.org/docs/techref/netifd
+	 */
 	struct {
 		struct ubus_request req;
 		bool req_pending;
@@ -66,16 +87,18 @@ struct usteer_local_node {
 	} netifd;
 };
 /**
- *
+ * ?? interface running
  */
 struct interface;
 /**
- *
+ * Node on a remote station
  */
 struct usteer_remote_node {
 	struct avl_node avl;
 	const char *name;
-
+    /**
+     * see usteer.h
+     */
 	struct usteer_node node;
 	struct interface *iface;
 
