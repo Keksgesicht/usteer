@@ -179,26 +179,29 @@ static void init_station(struct sta_data *sta){
 	sta_schedule_probe(sta);
 }
 /**
- *
- * @param ref
- * @param n
+ * Create n instances of station
+ * @param ref source
+ * @param n isntances
  */
 static void create_stations(struct sta_data *ref, int n){
-	struct sta_data *sta;
+	struct sta_data *sta; // buffer
 	int i;
 
-	tq.cb = sta_probe;
+	tq.cb = sta_probe; // pointer function
 	sta = calloc(n, sizeof(*sta));
 	for (i = 0; i < n; i++) {
+	    /**
+	     * dest, src, size_t
+	     */
 		memcpy(sta, ref, sizeof(*sta));
 		init_station(sta);
-		sta++;
+		sta++; // incerease pointer
 	}
 }
 /**
- *
+ * Print usage
  * @param prog
- * @return
+ * @return 1 if not successful
  */
 static int usage(const char *prog){
 	fprintf(stderr, "Usage: %s <options>\n"
@@ -277,7 +280,11 @@ int main(int argc, char **argv){
 		.probe = { 0, 1000, 30000 },
 	};
 	int ch;
-
+    /**
+     * loop runner for i/o. Gets in charge of polling the different file descriptors you have added to it,
+     * gets in charge of running timers, and helps you manage child processes.
+     * https://openwrt.org/docs/techref/libubox
+     */
 	uloop_init();
 
 	r_fd = fopen("/dev/urandom", "r");
