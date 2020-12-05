@@ -52,6 +52,7 @@ enum usteer_node_type {
 
 struct sta_info;
 struct usteer_local_node;
+
 /**
  * A node struct comprising:
  * 1. AVL node (AVL tree from libubox/avl.h)

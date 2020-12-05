@@ -30,6 +30,7 @@
 #include <libubox/blobmsg_json.h>
 #include "usteer.h"
 #include "node.h"
+
 /**
  * struct avl_tree local_nodes = {
  *                              .list_head={
@@ -42,14 +43,17 @@
  *                              }
  */
 AVL_TREE(local_nodes, avl_strcmp, false, NULL);
+
 /**
  *
  */
 static struct blob_buf b;
+
 /**
  *
  */
 static char *node_up_script;
+
 /**
  *
  * @param ln
@@ -61,6 +65,7 @@ static void usteer_local_node_state_reset(struct usteer_local_node *ln){
 	ubus_abort_request(ubus_ctx, &ln->req);
 	ln->req_state = REQ_IDLE;
 }
+
 /**
  *
  * @param ctx
@@ -83,6 +88,7 @@ static void usteer_free_node(struct ubus_context *ctx, struct usteer_local_node 
 	ubus_unregister_subscriber(ctx, &ln->ev);
 	free(ln);
 }
+
 /**
  *
  * @param ctx
@@ -95,6 +101,7 @@ static void usteer_handle_remove(struct ubus_context *ctx, struct ubus_subscribe
 
 	usteer_free_node(ctx, ln);
 }
+
 /**
  *
  * @param ctx

@@ -24,7 +24,7 @@
 #define MSG_CONT(_nr, _format, ...) debug_msg_cont(MSG_##_nr, _format, ##__VA_ARGS__)
 
 /**
- * Used to format into a string in MAC-address format.
+ * Used to format data into a string in MAC-address format.
  */
 #define MAC_ADDR_FMT "%02x:%02x:%02x:%02x:%02x:%02x"
 
@@ -43,29 +43,21 @@
 #define MSG_T(_option,  _format, ...) \
 	MSG(DEBUG_ALL, "TESTCASE=" _option ": "  _format,  ##__VA_ARGS__)
 
+/** 
+ * The usteer debug levels as enum. The index of the enum value
+ * corresponds to the debug levels listed for example in the usteer documentation.
+ */
 enum usteer_debug {
-	MSG_FATAL,
-	MSG_INFO,
-	MSG_VERBOSE,
-	MSG_DEBUG,
-	MSG_NETWORK,
-	MSG_DEBUG_ALL,
+	MSG_FATAL, 		// = 0
+	MSG_INFO, 		// = 1
+	MSG_VERBOSE, 	// = 2
+	MSG_DEBUG, 		// = 3
+	MSG_NETWORK, 	// = 4
+	MSG_DEBUG_ALL, 	// = 5
 };
-/**
- *
- * @param level
- * @param func
- * @param line
- * @param format
- * @param ...
- */
+
+		/* -----------< See 'main.c'. >-----------*/
 extern void debug_msg(int level, const char *func, int line, const char *format, ...);
-/**
- *
- * @param level
- * @param format
- * @param ...
- */
 extern void debug_msg_cont(int level, const char *format, ...);
 
 #define __usteer_init __attribute__((constructor))

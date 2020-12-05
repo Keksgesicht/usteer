@@ -60,11 +60,10 @@ struct udp_header {
 };
 
 /**
- *
+ * 
  * @param data
  */
-static void decode_sta(struct blob_attr *data)
-{
+static void decode_sta(struct blob_attr *data){
 	struct apmsg_sta msg;
 
 	if (!parse_apmsg_sta(&msg, data))
@@ -73,12 +72,12 @@ static void decode_sta(struct blob_attr *data)
 	fprintf(stderr, "\t\tSta "MAC_ADDR_FMT" signal=%d connected=%d timeout=%d\n",
 		MAC_ADDR_DATA(msg.addr), msg.signal, msg.connected, msg.timeout);
 }
+
 /**
  *
  * @param data
  */
-static void decode_node(struct blob_attr *data)
-{
+static void decode_node(struct blob_attr *data){
 	struct apmsg_node msg;
 	struct blob_attr *cur;
 	int rem;
@@ -109,12 +108,12 @@ static void decode_node(struct blob_attr *data)
 	blob_for_each_attr(cur, msg.stations, rem)
 		decode_sta(cur);
 }
+
 /**
  *
  * @param data
  */
-static void decode_packet(struct blob_attr *data)
-{
+static void decode_packet(struct blob_attr *data){
 	struct apmsg msg;
 	struct blob_attr *cur;
 	int rem;
@@ -129,6 +128,7 @@ static void decode_packet(struct blob_attr *data)
 	blob_for_each_attr(cur, msg.nodes, rem)
 		decode_node(cur);
 }
+
 /**
  *
  * @param user
@@ -136,8 +136,7 @@ static void decode_packet(struct blob_attr *data)
  * @param packet
  */
 static void recv_packet(unsigned char *user, const struct pcap_pkthdr *hdr,
-	                    const unsigned char *packet)
-{
+	                    const unsigned char *packet){
 	char addr[INET_ADDRSTRLEN];
 	struct ip_header *ip;
 	struct udp_header *uh;
@@ -181,8 +180,7 @@ static void recv_packet(unsigned char *user, const struct pcap_pkthdr *hdr,
 	decode_packet(data);
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv){
 	static char errbuf[PCAP_ERRBUF_SIZE];
 	struct bpf_program fp;
 

@@ -20,12 +20,17 @@
 #include <string.h>
 #include <libubox/utils.h>
 #include "timeout.h"
+
 /**
- * Comparator, compares timeouts
- * @param k1
- * @param k2
- * @param ptr
- * @return 0 if =, 1 if <, -1 if >
+ * Predicate to compare two timeouts. The first timeout is considered 'greater', if the 
+ * first timeout is further away from the value of 'ptr' and vice versa. If the timeout
+ * 'k1' is considered greater, the function returns 1, or -1 to signal the opposite. In the
+ * case of equality, the function returns 0.
+ * 
+ * @param k1 The first timeout time.
+ * @param k2 The second timeout time.
+ * @param ptr The time that the deltas to the timeouts are computed and compared.
+ * @return 1, if 'k1 > k2', -1 if 'k1 < k2', or 0 if 'k1 = k2'.
  */
 static int usteer_timeout_cmp(const void *k1, const void *k2, void *ptr){
 	uint32_t ref = (uint32_t) (intptr_t) ptr;
@@ -49,6 +54,7 @@ static int32_t usteer_timeout_delta(struct usteer_timeout *t, uint32_t time){
 	uint32_t val = (uint32_t) (intptr_t) t->node.key;
 	return val - time;
 }
+
 /**
  * Recalculate time out
  * @param q with avl nodes
@@ -92,6 +98,7 @@ static void usteer_timeout_recalc(struct usteer_timeout_queue *q, uint32_t time)
 	 */
 	uloop_timeout_set(&q->timeout, delta);
 }
+
 /**
  *
  * @return current time
@@ -112,6 +119,7 @@ static uint32_t ampgr_timeout_current_time(void){
 
 	return val;
 }
+
 /**
  *
  * used as a pointer function
@@ -157,6 +165,7 @@ static void usteer_timeout_cb(struct uloop_timeout *timeout){
 
 	usteer_timeout_recalc(q, time);
 }
+
 /**
  *
  * @param q
@@ -174,11 +183,12 @@ void usteer_timeout_init(struct usteer_timeout_queue *q){
 	avl_init(&q->tree, usteer_timeout_cmp, true, NULL);
 	q->timeout.cb = usteer_timeout_cb;
 }
+
 /**
- * Auxiliary function, see 'usteer_timeout_cancel',
- * Remove avl node, cancel timeout
- * @param q pointer to tree
- * @param t pointer to node
+ * Cancels the given usteer timeout by deleting the given timeout from the timeout queue.
+ * 
+ * @param q The timeout queue.
+ * @param t The timeout instance that is supposed to be canceled.
  */
 static void __usteer_timeout_cancel(struct usteer_timeout_queue *q,
 				                    struct usteer_timeout *t){
@@ -189,6 +199,7 @@ static void __usteer_timeout_cancel(struct usteer_timeout_queue *q,
      */
 	avl_delete(&q->tree, &t->node);
 }
+
 /**
  *
  * @param q
@@ -217,25 +228,28 @@ void usteer_timeout_set(struct usteer_timeout_queue *q, struct usteer_timeout *t
 	if (recalc)
 		usteer_timeout_recalc(q, time);
 }
+
 /**
- * Cancel timeout, uses auxiliary function '__usteer_timeout_cancel(q, t)'
- * @param q with avl nodes
- * @param t avl node for timeout
+ * Cancel the given timeout and remove it from the timeout queue.
+ * 
+ * @param q The timeout queue.
+ * @param t The timeout to cancel.
  */
 void usteer_timeout_cancel(struct usteer_timeout_queue *q,
 			               struct usteer_timeout *t){
-    /**
-     * see timeout.h
-     */
+
+	/* No nodes are affected by the timeout, return */
 	if (!usteer_timeout_isset(t))
 		return;
 
+	/* Cancel/Delete the timeout from the queue. */
 	__usteer_timeout_cancel(q, t);
 	/**
 	 * set sizeof(t->node.list) bytes of t->node.list to 0
 	 */
 	memset(&t->node.list, 0, sizeof(t->node.list));
 }
+
 /**
  * flush timeout queue
  * @param q
