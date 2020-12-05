@@ -21,11 +21,11 @@
 #include <libubox/utils.h>
 #include "timeout.h"
 /**
- *
+ * Comparator, compares timeouts
  * @param k1
  * @param k2
  * @param ptr
- * @return
+ * @return 0 if =, 1 if <, -1 if >
  */
 static int usteer_timeout_cmp(const void *k1, const void *k2, void *ptr){
 	uint32_t ref = (uint32_t) (intptr_t) ptr;
@@ -40,8 +40,8 @@ static int usteer_timeout_cmp(const void *k1, const void *k2, void *ptr){
 		return 0;
 }
 /**
- *
- * @param t
+ * Difference of usteer time out node and time
+ * @param t usteer_timeout node (avl node)
  * @param time
  * @return
  */
@@ -50,35 +50,62 @@ static int32_t usteer_timeout_delta(struct usteer_timeout *t, uint32_t time){
 	return val - time;
 }
 /**
- *
- * @param q
+ * Recalculate time out
+ * @param q with avl nodes
  * @param time
  */
 static void usteer_timeout_recalc(struct usteer_timeout_queue *q, uint32_t time){
 	struct usteer_timeout *t;
 	int32_t delta;
 
+	/**
+	 * if no element in q
+	 */
 	if (avl_is_empty(&q->tree)) {
+	    /**
+	     * cancel uloop timeout
+	     */
 		uloop_timeout_cancel(&q->timeout);
 		return;
 	}
-
+    /**
+     * get first element in the q
+     *
+     * q->tree, pointer to avl-tree
+     * usteer_timeout t, pointer to a node element (don't need to be initialized)
+     * node, name of the avl_node element inside the larger struct
+     */
 	t = avl_first_element(&q->tree, t, node);
-
+    /**
+     * get the difference between usteer timeout and time
+     */
 	delta = usteer_timeout_delta(t, time);
+	/**
+	 * if the difference is < 1 , it means that the time is close to the real timeout, yet smaller
+	 * in that case set delta to 1
+	 */
 	if (delta < 1)
 		delta = 1;
 
+	/**
+	 * update the uloop timeout with the delta
+	 */
 	uloop_timeout_set(&q->timeout, delta);
 }
 /**
  *
- * @return
+ * @return current time
  */
 static uint32_t ampgr_timeout_current_time(void){
-	struct timespec ts;
+	/**
+	 * POSIX.1b structure for a time value, nanoseconds
+	 */
+    struct timespec ts;
 	uint32_t val;
 
+	/**
+	 * Get current value of clock CLOCK_ID and store it in TP.
+	 */
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	val = ts.tv_sec * 1000;
 	val += ts.tv_nsec / 1000000;
@@ -87,6 +114,7 @@ static uint32_t ampgr_timeout_current_time(void){
 }
 /**
  *
+ * used as a pointer function
  * @param timeout
  */
 static void usteer_timeout_cb(struct uloop_timeout *timeout){
@@ -95,11 +123,27 @@ static void usteer_timeout_cb(struct uloop_timeout *timeout){
 	bool found;
 	uint32_t time;
 
+	/**
+	 * ??
+	 * That weird macro black magic, it does some kind of weird conversion
+	 * NEEDS TO BE CLARIFIED
+	 */
 	q = container_of(timeout, struct usteer_timeout_queue, timeout);
 	do {
 		found = false;
+		/**
+		 * get current time
+		 */
 		time = ampgr_timeout_current_time();
-
+        /**
+         * Loop over all elements of an avl_tree,
+         * This loop can be used if the current element might
+         * be removed from the tree during the loop
+         * q->tree, pointer to avl-tree
+         * t, pointer to a node of the tree, this element will contain the current node of the tree during the loop
+         * node, name of the avl_node element inside the larger struct
+         * usteer_timeout, tmp pointer to a tree element which is used to store the next node during the loop
+         */
 		avl_for_each_element_safe(&q->tree, t, node, tmp) {
 			if (usteer_timeout_delta(t, time) > 0)
 				break;
@@ -118,16 +162,31 @@ static void usteer_timeout_cb(struct uloop_timeout *timeout){
  * @param q
  */
 void usteer_timeout_init(struct usteer_timeout_queue *q){
+    /**
+     *
+     * Initialize a new avl_tree struct
+     * q->tree, pointer to avl-tree
+     * usteer_timeout_cmp, pointer to comparator for the tree
+     * allow_dups true if the tree allows multiple
+     *   elements with the same
+     * ptr custom parameter for comparator
+     */
 	avl_init(&q->tree, usteer_timeout_cmp, true, NULL);
 	q->timeout.cb = usteer_timeout_cb;
 }
 /**
- *
- * @param q
- * @param t
+ * Auxiliary function, see 'usteer_timeout_cancel',
+ * Remove avl node, cancel timeout
+ * @param q pointer to tree
+ * @param t pointer to node
  */
 static void __usteer_timeout_cancel(struct usteer_timeout_queue *q,
 				                    struct usteer_timeout *t){
+    /**
+     * Remove a node from an avl tree
+     * q->tree, pointer to tree
+     * t->node, pointer to node
+     */
 	avl_delete(&q->tree, &t->node);
 }
 /**
@@ -159,27 +218,46 @@ void usteer_timeout_set(struct usteer_timeout_queue *q, struct usteer_timeout *t
 		usteer_timeout_recalc(q, time);
 }
 /**
- *
- * @param q
- * @param t
+ * Cancel timeout, uses auxiliary function '__usteer_timeout_cancel(q, t)'
+ * @param q with avl nodes
+ * @param t avl node for timeout
  */
 void usteer_timeout_cancel(struct usteer_timeout_queue *q,
 			               struct usteer_timeout *t){
+    /**
+     * see timeout.h
+     */
 	if (!usteer_timeout_isset(t))
 		return;
 
 	__usteer_timeout_cancel(q, t);
+	/**
+	 * set sizeof(t->node.list) bytes of t->node.list to 0
+	 */
 	memset(&t->node.list, 0, sizeof(t->node.list));
 }
 /**
- *
+ * flush timeout queue
  * @param q
  */
 void usteer_timeout_flush(struct usteer_timeout_queue *q){
 	struct usteer_timeout *t, *tmp;
-
+    /**
+     * cancel uloop timeout
+     */
 	uloop_timeout_cancel(&q->timeout);
+	/**
+	 * loop that removes all elements of the tree and cleans up the tree root.
+	 * does not rebalance the tree after each removal
+	 * q->tree, pointer to avl-tree
+     * t, pointer to a node of the tree, this element will contain the current node of the tree during the loop
+     * node, name of the avl_node element inside the larger struct
+     * usteer_timeout tmp, pointer to a tree element which is used to store the next node during the loop
+	 */
 	avl_remove_all_elements(&q->tree, t, node, tmp) {
+        /**
+        * set sizeof(t->node.list) bytes of t->node.list to 0
+        */
 		memset(&t->node.list, 0, sizeof(t->node.list));
 		if (q->cb)
 			q->cb(q, t);

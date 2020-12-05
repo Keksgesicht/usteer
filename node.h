@@ -68,6 +68,7 @@ struct usteer_local_node {
 
 	uint64_t time, time_busy;
     /**
+     * see nl80211.c
      * nl80211 is the new 802.11 netlink interface public header.
      * https://wireless.wiki.kernel.org/en/developers/Documentation/nl80211
      */
@@ -76,6 +77,7 @@ struct usteer_local_node {
 		struct uloop_timeout update;
 	} nl80211;
 	/**
+	 * see netfid.c
 	 * Network Interface Daemon
 	 * netifd is an RPC-capable daemon
 	 * https://openwrt.org/docs/techref/netifd
