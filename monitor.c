@@ -50,7 +50,11 @@ struct ip_header {
 #define IP_HL(ip)		(((ip)->ip_vhl) & 0x0f)
 #define IP_V(ip)		(((ip)->ip_vhl) >> 4)
 /**
- * 
+ * UDP header
+ * uh_sport source port
+ * uh_dport dest port
+ * uh_ulen  length
+ * uh_sum   checksum
  */
 struct udp_header {
 	uint16_t uh_sport;       /* source port */
@@ -60,22 +64,28 @@ struct udp_header {
 };
 
 /**
- * 
- * @param data
+ * Decode station data and put the output into a stream
+ * @param data station data
  */
 static void decode_sta(struct blob_attr *data){
+    /**
+     * message
+     */
 	struct apmsg_sta msg;
 
 	if (!parse_apmsg_sta(&msg, data))
 		return;
-
+    /**
+     * write output to stream
+     * MAC_ADDR_FMT is a MAC address format "%02x:%02x:%02x:%02x:%02x:%02x"
+     */
 	fprintf(stderr, "\t\tSta "MAC_ADDR_FMT" signal=%d connected=%d timeout=%d\n",
 		MAC_ADDR_DATA(msg.addr), msg.signal, msg.connected, msg.timeout);
 }
 
 /**
- *
- * @param data
+ * Decode node data and put the output into a stream
+ * @param data node data
  */
 static void decode_node(struct blob_attr *data){
 	struct apmsg_node msg;
@@ -84,13 +94,25 @@ static void decode_node(struct blob_attr *data){
 
 	if (!parse_apmsg_node(&msg, data))
 		return;
-
+    /**
+     * write output into a stream
+     */
 	fprintf(stderr, "\tNode %s, freq=%d, n_assoc=%d, noise=%d load=%d max_assoc=%d\n",
 		msg.name, msg.freq, msg.n_assoc, msg.noise, msg.load, msg.max_assoc);
+	/**
+	 * if station has neighbors
+	 */
 	if (msg.rrm_nr) {
+	    /**
+	     * prepore for loop, put RRM into stream
+	     */
 		fprintf(stderr, "\t\tRRM:");
+		/**
+		 * iterate over neighbors, put them into stream
+		 * doesnt include current station
+		 */
 		blobmsg_for_each_attr(cur, msg.rrm_nr, rem) {
-			if (!blobmsg_check_attr(cur, false))
+			if (!blobmsg_check_attr(cur, false)) /*skip current station*/
 				continue;
 			if (blobmsg_type(cur) != BLOBMSG_TYPE_STRING)
 				continue;
@@ -98,63 +120,83 @@ static void decode_node(struct blob_attr *data){
 		}
 		fprintf(stderr, "\n");
 	}
-
+    /**
+     * if script data present, put into stream and free data
+     */
 	if (msg.script_data) {
 		char *data = blobmsg_format_json(msg.script_data, true);
 		fprintf(stderr, "\t\tScript data: %s\n", data);
 		free(data);
 	}
-
+    /**
+     * iterate over neighboring stations and decode them
+     * see 'decode_sta()'
+     */
 	blob_for_each_attr(cur, msg.stations, rem)
 		decode_sta(cur);
 }
 
 /**
- *
+ * Decode packet and put the output into stream
  * @param data
  */
 static void decode_packet(struct blob_attr *data){
 	struct apmsg msg;
 	struct blob_attr *cur;
 	int rem;
-
+    /**
+     * if no message present, put error into stream and return
+     * else put data into msg
+     */
 	if (!parse_apmsg(&msg, data)) {
 		fprintf(stderr, "missing fields\n");
 		return;
 	}
-
+    /**
+     * put id and seq into stream
+     */
 	fprintf(stderr, "id=%08x, seq=%d\n", msg.id, msg.seq);
-
+    /**
+     * iterate over nodes and decode them, see 'decode_node()'
+     */
 	blob_for_each_attr(cur, msg.nodes, rem)
 		decode_node(cur);
 }
 
 /**
- *
+ * Recieve a packet
  * @param user
- * @param hdr
- * @param packet
+ * @param hdr Generic per-packet information, as supplied by libpcap.
+ * @param packet string containing packet information
  */
 static void recv_packet(unsigned char *user, const struct pcap_pkthdr *hdr,
 	                    const unsigned char *packet){
-	char addr[INET_ADDRSTRLEN];
+	char addr[INET_ADDRSTRLEN]; /* 16 */
 	struct ip_header *ip;
 	struct udp_header *uh;
 	struct blob_attr *data;
-	int len = hdr->caplen;
+	int len = hdr->caplen; /*length of portion present*/
 	int hdrlen;
 
 	len -= pkt_offset;
 	packet += pkt_offset;
 	ip = (void *) packet;
-
-	hdrlen = IP_HL(ip) * 4;
+    /**
+     * IP_HL(ip) == (((ip)->ip_vhl) & 0x0f)
+     */
+	hdrlen = IP_HL(ip) * 4; /*cut into 4 portions*/
 	if (hdrlen < 20 || hdrlen >= len)
 		return;
 
 	len -= hdrlen;
 	packet += hdrlen;
 
+	/**
+	 * Convert a Internet address in binary network format for interface
+     * AF_INET in buffer starting at ip->ip_src to presentation form and place
+     * result in buffer of length sizeof(addr) astarting at addr.
+     *
+	 */
 	inet_ntop(AF_INET, &ip->ip_src, addr, sizeof(addr));
 
 	hdrlen = sizeof(*uh);
@@ -177,11 +219,17 @@ static void recv_packet(unsigned char *user, const struct pcap_pkthdr *hdr,
 		return;
 	}
 
+	/**
+	 * decode packet, see 'decode_packet()'
+	 */
 	decode_packet(data);
 }
 
 int main(int argc, char **argv){
-	static char errbuf[PCAP_ERRBUF_SIZE];
+	static char errbuf[PCAP_ERRBUF_SIZE]; /* PCAP_ERRBUF_SIZE = 256*/
+	/**
+	 * Structure for "pcap_compile()", "pcap_setfilter()", etc..
+	 */
 	struct bpf_program fp;
 
 	if (argc != 2) {
