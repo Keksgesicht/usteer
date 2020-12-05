@@ -55,7 +55,12 @@ enum {
 	__APMSG_NODE_MAX
 };
 /**
- *
+ * name, name of the station
+ * ssid, name of wlan
+ * freq, frequency
+ * n_assoc, number of assocs
+ * max_assoc, max number of assocs
+ * rrm_nr, neighboring stations
  */
 struct apmsg_node {
 	const char *name;
@@ -66,7 +71,7 @@ struct apmsg_node {
 	int noise;
 	int load;
 	struct blob_attr *stations;
-	struct blob_attr *rrm_nr;
+	struct blob_attr *rrm_nr; /*neighbor*/
 	struct blob_attr *script_data;
 };
 /**
@@ -81,7 +86,12 @@ enum {
 	__APMSG_STA_MAX
 };
 /**
- *
+ * AP message station
+ * address
+ * connected bool
+ * signal
+ * timeout
+ * seen
  */
 struct apmsg_sta {
 	uint8_t addr[6];
@@ -92,21 +102,21 @@ struct apmsg_sta {
 	int seen;
 };
 /**
- *
+ * Parse AP message from blob attributes
  * @param msg
  * @param data
  * @return
  */
 bool parse_apmsg(struct apmsg *msg, struct blob_attr *data);
 /**
- *
+ * Parse node message from blob attributes
  * @param msg
  * @param data
  * @return
  */
 bool parse_apmsg_node(struct apmsg_node *msg, struct blob_attr *data);
 /**
- *
+ * Parse station message from blob attributes
  * @param msg
  * @param data
  * @return
