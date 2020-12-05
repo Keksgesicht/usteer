@@ -178,19 +178,64 @@ struct usteer_config {
 
 			/* -----------< sta >-----------*/
 	uint32_t sta_block_timeout;
+
 	uint32_t local_sta_timeout;
+
 	uint32_t local_sta_update;
 
+
 	uint32_t max_retry_band;
+
+	/**
+	 * This value determines the size of the time interval after a station will not be considered
+	 * a better candidate. When checking for a better candidate, a time delta between the current time
+	 * and the 'seen' value is compared. If the value is greater than this value, the station will
+	 * not be considered a better candidate at all.
+	 *
+	 * Default value: 30k
+	 */
 	uint32_t seen_policy_timeout;
 
+	/**
+	 * This threshold is used to calculate a metric between a current and new station.
+	 * If the current station operates on 5GHz, but the new station does not, this value
+	 * is added on the side of the new station. If the current station operates on 2.4GHz, the
+	 * value is added for the current station.
+	 * 
+	 * At the end of the day, this value represents a penalty that is taken into consideration
+	 * which station of the two is better. The higher this value, the higher the penalty if a 
+	 * station operates on a lower frequency.
+	 * 
+	 * Default value: 5
+	 */
 	uint32_t band_steering_threshold;
+
+	/**
+	 * Similarily like 'band_steering_threshold', this value is a penalty that most probably
+	 * models if it is viable to roam a client to another station by taking the generated overhead
+	 * and traffic generated into consideration. The higher this value is, the higher the penalty
+	 * is when determening if another station is better for a client.
+	 * 
+	 * Default value: 5
+	 */
 	uint32_t load_balancing_threshold;
 
+	/**
+	 * Use: ?
+	 * 
+	 * Default value: 1k
+	 */
 	uint32_t remote_update_interval;
+
+	/**
+	 * Use: ?
+	 * 
+	 * Default value: 120k
+	 */
 	uint32_t remote_node_timeout;
 
 	int32_t min_snr;
+
 	int32_t min_connect_snr;
 
 	/**
@@ -209,12 +254,32 @@ struct usteer_config {
 
 	/**
 	 * The amount of attempts a station should take to attempt to roam before kicking.
+	 * 
+	 * Default value: 3
 	 */
 	uint32_t roam_scan_tries;
 
+	/**
+	 * This value defines the frequency usteer scans for roaming possibilities.
+	 * 
+	 * Default value: 10k
+	 */
 	uint32_t roam_scan_interval;
+	
 	int32_t roam_trigger_snr;
+
+	/**
+	 * This value defines the frequency usteer attempts to roam clients.
+	 * 
+	 * Default value: 60k
+	 */
 	uint32_t roam_trigger_interval;
+
+	/**
+	 * Delay before a client is kicked if the client fails to roam in time.
+	 * 
+	 * Default value: 100
+	 */
 	uint32_t roam_kick_delay;
 
 
@@ -231,7 +296,7 @@ struct usteer_config {
 
 			/* -----------< load-kicking >-----------*/
 	/**
-	 * When enabled, nodes that exceed the 'load_kick_threshold'
+	 * When enabled, nodes whose load value exceeds the 'load_kick_threshold'
 	 * will be automatically kicked. Default value: false
 	 */
 	bool load_kick_enabled;
