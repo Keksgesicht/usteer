@@ -209,11 +209,16 @@ bool usteer_check_request(struct sta_info *si, enum usteer_event_type type){
 
 	return false;
 }
+
 /**
- *
- * @param si_cur
- * @param si_new
- * @return
+ * Predicate to determine if a new station is more likely to kick a client. This is determined
+ * by comparing the kick_counts of the two stations. The function returns true if the new station
+ * has kicked more clients or if the new station has a weaker signal strength. If the current station
+ * is 0, the function returns true.
+ * 
+ * @param si_cur The current station or 0.
+ * @param si_new The new station.
+ * @return True if the new station is less likeley to kick the client or if the current station is 0.
  */
 static bool is_more_kickable(struct sta_info *si_cur, struct sta_info *si_new){
 	if (!si_cur)
@@ -224,6 +229,7 @@ static bool is_more_kickable(struct sta_info *si_cur, struct sta_info *si_new){
 
 	return si_cur->signal > si_new->signal;
 }
+
 /**
  *
  * @param si
