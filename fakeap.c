@@ -148,8 +148,8 @@ static void sta_schedule_probe(struct sta_data *sta){
  */
 static void sta_probe(struct usteer_timeout_queue *q, struct usteer_timeout *t){
     /**
-     * container_of is some kind of a horrible macro magic
-     * might be some kind of pointer arithmetic?
+     * convert t into station data
+     * and fix pointers
      */
 	struct sta_data *sta = container_of(t, struct sta_data, probe_t);
     /**

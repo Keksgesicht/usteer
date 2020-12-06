@@ -115,7 +115,11 @@ static int nl80211_survey_result(struct nl_msg *msg, void *arg){
  */
 static void nl80211_get_survey(struct usteer_node *node, void *priv,
 			                   void (*cb)(void *priv, struct usteer_survey_data *d)){
-	struct usteer_local_node *ln = container_of(node, struct usteer_local_node, node);
+    /**
+     * convert node into usteer local node
+     * and fix pointers
+     */
+    struct usteer_local_node *ln = container_of(node, struct usteer_local_node, node);
 	struct nl80211_survey_req req = {
 		.priv = priv,
 		.cb = cb,
@@ -171,6 +175,10 @@ static void nl80211_update_node_result(void *priv, struct usteer_survey_data *d)
  * @param t
  */
 static void nl80211_update_node(struct uloop_timeout *t){
+    /**
+     * convert t into usteer local node
+     * and fix pointers
+     */
 	struct usteer_local_node *ln = container_of(t, struct usteer_local_node, nl80211.update);
 
 	uloop_timeout_set(t, 1000);
@@ -182,6 +190,10 @@ static void nl80211_update_node(struct uloop_timeout *t){
  * @param node
  */
 static void nl80211_init_node(struct usteer_node *node){
+    /**
+     * convert node into usteer local node
+     * and fix pointers
+     */
 	struct usteer_local_node *ln = container_of(node, struct usteer_local_node, node);
 	struct genlmsghdr *gnlh;
 	static bool _init = false;
@@ -248,6 +260,10 @@ nla_put_failure:
  * @param node
  */
 static void nl80211_free_node(struct usteer_node *node){
+    /**
+     * convert node into usteer local node
+     * and fix pointers
+     */
 	struct usteer_local_node *ln = container_of(node, struct usteer_local_node, node);
 
 	if (!ln->nl80211.present)
@@ -262,6 +278,10 @@ static void nl80211_free_node(struct usteer_node *node){
  */
 static void nl80211_update_sta(struct usteer_node *node, struct sta_info *si){
 	struct nlattr *tb_sta[NL80211_STA_INFO_MAX + 1];
+    /**
+     * convert node into usteer local node
+     * and fix pointers
+     */
 	struct usteer_local_node *ln = container_of(node, struct usteer_local_node, node);
 	struct genlmsghdr *gnlh;
 	struct nl_msg *msg;
@@ -395,7 +415,11 @@ static int nl80211_scan_event_cb(struct nl_msg *msg, void *data){
  */
 static int nl80211_scan(struct usteer_node *node, struct usteer_scan_request *req,
 			            void *priv, void (*cb)(void *priv, struct usteer_scan_result *r)){
-	struct usteer_local_node *ln = container_of(node, struct usteer_local_node, node);
+    /**
+     * convert node into usteer local node
+     * and fix pointers
+     */
+    struct usteer_local_node *ln = container_of(node, struct usteer_local_node, node);
 	struct nl80211_scan_req reqdata = {
 		.priv = priv,
 		.cb = cb,
@@ -520,7 +544,11 @@ static int nl80211_wiphy_result(struct nl_msg *msg, void *arg){
  */
 static void nl80211_get_freqlist(struct usteer_node *node, void *priv,
 				                 void (*cb)(void *priv, struct usteer_freq_data *f)){
-	struct usteer_local_node *ln = container_of(node, struct usteer_local_node, node);
+    /**
+     * convert node into usteer local node
+     * and fix pointers
+     */
+    struct usteer_local_node *ln = container_of(node, struct usteer_local_node, node);
 	struct nl80211_freqlist_req req = {
 		.priv = priv,
 		.cb = cb

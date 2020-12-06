@@ -119,14 +119,30 @@ static void interfaces_update_cb(struct vlist_tree *tree,
 	struct interface *iface;
 
 	if (node_new && node_old) {
+	    /**
+	     * convert node_new into interface
+	     * and fix pointers
+	     */
 		iface = container_of(node_new, struct interface, node);
 		free(iface);
+        /**
+         * convert node_old into interface
+         * and fix pointers
+         */
 		iface = container_of(node_old, struct interface, node);
 		interface_check(iface);
 	} else if (node_old) {
+        /**
+         * convert node_old into interface
+         * and fix pointers
+         */
 		iface = container_of(node_old, struct interface, node);
 		interface_free(iface);
 	} else {
+        /**
+         * convert node_new into interface
+         * and fix pointers
+         */
 		iface = container_of(node_new, struct interface, node);
 		interface_init(iface);
 	}

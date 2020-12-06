@@ -38,6 +38,13 @@
 
 #define DIV_ROUND_UP(n,d) (((n) + (d) - 1) / (d))
 
+/**
+ * event types
+ * probe
+ * association
+ * authentication
+ * number of events
+ */
 enum usteer_event_type {
 	EVENT_TYPE_PROBE,
 	EVENT_TYPE_ASSOC,
@@ -45,6 +52,11 @@ enum usteer_event_type {
 	__EVENT_TYPE_MAX,
 };
 
+/**
+ * type of usteer node
+ * local node
+ * remote node
+ */
 enum usteer_node_type {
 	NODE_TYPE_LOCAL,
 	NODE_TYPE_REMOTE,
@@ -58,8 +70,8 @@ struct usteer_local_node;
  * 1. AVL node (AVL tree from libubox/avl.h)
  * 2. list.h, sta information
  * 3. type of the usteer node, enum
- * 4. ?? blob msg attributes
- * 5. ?? blob msg some kind of script data
+ * 4. neighbors
+ * 5. script data
  * 6. wifi ssid
  * 7~ general wifi info: frequency, noise ..
  */
@@ -132,10 +144,15 @@ struct usteer_freq_data {
 
 /**
  * Pointer functions:
- * Initialize node
- * Free memory
- * Update node
- * ???
+ * Initialize node:
+ *      (for request see netifd.c, calls update)
+ * Free node:
+ *      (for request see netifd.c, cancel request)
+ *      (in local_node.c free memory)
+ * Update node:
+ *      (for request see netifd.c)
+ *
+ * update station
  * survey on a node, cb ???
  * get frequencies
  * scan

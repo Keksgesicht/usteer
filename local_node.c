@@ -45,7 +45,7 @@
 AVL_TREE(local_nodes, avl_strcmp, false, NULL);
 
 /**
- *
+ * blob buffer
  */
 static struct blob_buf b;
 
@@ -55,21 +55,31 @@ static struct blob_buf b;
 static char *node_up_script;
 
 /**
- *
- * @param ln
+ * Reset state, put in REQ_IDLE
+ * @param ln usteer local node
  */
 static void usteer_local_node_state_reset(struct usteer_local_node *ln){
 	if (ln->req_state == REQ_IDLE)
 		return;
-
+    /**
+     * abort an asynchronous request
+     * context
+     * request
+     */
 	ubus_abort_request(ubus_ctx, &ln->req);
 	ln->req_state = REQ_IDLE;
 }
 
 /**
- *
- * @param ctx
- * @param ln
+ * completely free node
+ * reset state
+ * cleanup
+ * cancel timeouts
+ * delete avl tree
+ * ubus unregister subscriber
+ * free memory
+ * @param ctx context
+ * @param ln usteer local node to be free
  */
 static void usteer_free_node(struct ubus_context *ctx, struct usteer_local_node *ln){
 	struct usteer_node_handler *h;
@@ -90,26 +100,32 @@ static void usteer_free_node(struct ubus_context *ctx, struct usteer_local_node 
 }
 
 /**
- *
- * @param ctx
- * @param s
+ * Remove handler
+ * @param ctx context
+ * @param s ubus subscriber
  * @param id
  */
 static void usteer_handle_remove(struct ubus_context *ctx, struct ubus_subscriber *s,
 		                         uint32_t id){
+    /**
+     * convert s into usteer local node
+     * and fix pointers
+     */
 	struct usteer_local_node *ln = container_of(s, struct usteer_local_node, ev);
-
+    /**
+     * completely free node, see 'usteer_free_node()'
+     */
 	usteer_free_node(ctx, ln);
 }
 
 /**
  *
- * @param ctx
- * @param obj
- * @param req
- * @param method
- * @param msg
- * @return
+ * @param ctx context
+ * @param obj object
+ * @param req request
+ * @param method method
+ * @param msg message
+ * @return status
  */
 static int usteer_handle_event(struct ubus_context *ctx, struct ubus_object *obj,
 		                       struct ubus_request_data *req, const char *method,
@@ -122,24 +138,34 @@ static int usteer_handle_event(struct ubus_context *ctx, struct ubus_object *obj
 		__EVENT_MAX
 	};
 	struct blobmsg_policy policy[__EVENT_MAX] = {
-		[EVENT_ADDR] = { .name = "address", .type = BLOBMSG_TYPE_STRING },
-		[EVENT_SIGNAL] = { .name = "signal", .type = BLOBMSG_TYPE_INT32 },
-		[EVENT_TARGET] = { .name = "target", .type = BLOBMSG_TYPE_STRING },
-		[EVENT_FREQ] = { .name = "freq", .type = BLOBMSG_TYPE_INT32 },
+		[EVENT_ADDR] = { .name = "address",
+                         .type = BLOBMSG_TYPE_STRING },
+		[EVENT_SIGNAL] = { .name = "signal",
+                           .type = BLOBMSG_TYPE_INT32 },
+		[EVENT_TARGET] = { .name = "target",
+                           .type = BLOBMSG_TYPE_STRING },
+		[EVENT_FREQ] = { .name = "freq",
+                         .type = BLOBMSG_TYPE_INT32 },
 	};
 	enum usteer_event_type ev_type = __EVENT_TYPE_MAX;
 	struct blob_attr *tb[__EVENT_MAX];
 	struct usteer_local_node *ln;
 	struct usteer_node *node;
-	int signal = NO_SIGNAL;
+	int signal = NO_SIGNAL; /* usteer_free_node */
 	int freq = 0;
-	const char *addr_str;
+	const char *addr_str; /* address string */
 	const uint8_t *addr;
 	int i;
 	bool ret;
-
+    /**
+     * Updates the 'current_time' field to the current
+     * time represented as a UNIX-timestamp.
+     */
 	usteer_update_time();
 
+	/**
+	 * select event type according to method
+	 */
 	for (i = 0; i < ARRAY_SIZE(event_types); i++) {
 		if (strcmp(method, event_types[i]) != 0)
 			continue;
@@ -148,20 +174,39 @@ static int usteer_handle_event(struct ubus_context *ctx, struct ubus_object *obj
 		break;
 	}
 
+	/**
+	 * convert obj into usteer local node
+	 * and fix pointers
+	 */
 	ln = container_of(obj, struct usteer_local_node, ev.obj);
 	node = &ln->node;
+	/**
+	 * parse message, put into policy, tb
+	 */
 	blobmsg_parse(policy, __EVENT_MAX, tb, blob_data(msg), blob_len(msg));
+	/**
+	 * if invalid arguments supplied
+	 */
 	if (!tb[EVENT_ADDR] || !tb[EVENT_FREQ])
 		return UBUS_STATUS_INVALID_ARGUMENT;
-
+    /**
+     * set signal
+     */
 	if (tb[EVENT_SIGNAL])
 		signal = (int32_t) blobmsg_get_u32(tb[EVENT_SIGNAL]);
-
+    /**
+     * set frequency
+     */
 	if (tb[EVENT_FREQ])
 		freq = blobmsg_get_u32(tb[EVENT_FREQ]);
-
+    /**
+     * set address
+     */
 	addr_str = blobmsg_data(tb[EVENT_ADDR]);
 	addr = (uint8_t *) ether_aton(addr_str);
+	/**
+	 * if wrong args supplied
+	 */
 	if (!addr)
 		return UBUS_STATUS_INVALID_ARGUMENT;
 
@@ -267,6 +312,10 @@ static void usteer_local_node_list_cb(struct ubus_request *req, int type, struct
 	struct usteer_local_node *ln;
 	struct usteer_node *node;
 
+	/**
+	 * convert req into usteer local node
+	 * and fix pointers
+	 */
 	ln = container_of(req, struct usteer_local_node, req);
 	node = &ln->node;
 
@@ -290,6 +339,10 @@ static void usteer_local_node_rrm_nr_cb(struct ubus_request *req, int type, stru
 	struct usteer_local_node *ln;
 	struct blob_attr *tb;
 
+	/**
+	 * convert req into usteer local node
+	 * and fix pointers
+	 */
 	ln = container_of(req, struct usteer_local_node, req);
 
 	blobmsg_parse(&policy, 1, &tb, blob_data(msg), blob_len(msg));
@@ -305,7 +358,10 @@ static void usteer_local_node_rrm_nr_cb(struct ubus_request *req, int type, stru
  */
 static void usteer_local_node_req_cb(struct ubus_request *req, int ret){
 	struct usteer_local_node *ln;
-
+    /**
+	 * convert req into usteer local node
+	 * and fix pointers
+	 */
 	ln = container_of(req, struct usteer_local_node, req);
 	uloop_timeout_set(&ln->req_timer, 1);
 }
@@ -351,6 +407,10 @@ static void usteer_local_node_prepare_rrm_set(struct usteer_local_node *ln){
 static void usteer_local_node_state_next(struct uloop_timeout *timeout){
 	struct usteer_local_node *ln;
 
+    /**
+     * convert timeout into usteer local node
+     * and fix pointers
+     */
 	ln = container_of(timeout, struct usteer_local_node, req_timer);
 
 	ln->req_state++;
@@ -388,7 +448,10 @@ static void usteer_local_node_update(struct uloop_timeout *timeout){
 	struct usteer_local_node *ln;
 	struct usteer_node_handler *h;
 	struct usteer_node *node;
-
+    /**
+	 * convert timeout into usteer local node
+	 * and fix pointers
+	 */
 	ln = container_of(timeout, struct usteer_local_node, update);
 	node = &ln->node;
 
@@ -442,6 +505,10 @@ static struct usteer_local_node * usteer_get_node(struct ubus_context *ctx, cons
  * @param node
  */
 static void usteer_node_run_update_script(struct usteer_node *node){
+    /**
+	 * convert node into usteer local node
+	 * and fix pointers
+	 */
 	struct usteer_local_node *ln = container_of(node, struct usteer_local_node, node);
 	char *val;
 

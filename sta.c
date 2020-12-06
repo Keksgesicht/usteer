@@ -90,7 +90,11 @@ void usteer_sta_node_cleanup(struct usteer_node *node){
  * @param t
  */
 static void usteer_sta_info_timeout(struct usteer_timeout_queue *q, struct usteer_timeout *t){
-	struct sta_info *si = container_of(t, struct sta_info, timeout);
+    /**
+	 * convert t into station info
+	 * and fix pointers
+	 */
+    struct sta_info *si = container_of(t, struct sta_info, timeout);
 
 	MSG_T_STA("local_sta_timeout", si->sta->addr,
 		"timeout expired, deleting sta info\n");
@@ -248,11 +252,11 @@ void usteer_sta_info_update(struct sta_info *si, int signal, bool avg){
 /**
  *
  * @param node
- * @param addr
+ * @param addr address
  * @param type
- * @param freq
- * @param signal
- * @return
+ * @param freq frequency
+ * @param signal signal
+ * @return -1 if not successful
  */
 bool usteer_handle_sta_event(struct usteer_node *node, const uint8_t *addr,
                              enum usteer_event_type type, int freq, int signal){
@@ -266,14 +270,26 @@ bool usteer_handle_sta_event(struct usteer_node *node, const uint8_t *addr,
 	if (!sta)
 		return -1;
 
-	/* Based on the frequency, update the station that this frequency has been seen from the station. */
+	/**
+	 * Based on the frequency, update the station that this
+	 * frequency has been seen from the station.
+	 */
 	if (freq < 4000)
 		sta->seen_2ghz = 1;
 	else
 		sta->seen_5ghz = 1;
-
+    /**
+     * find station
+     */
 	si = usteer_sta_info_get(sta, node, &create);
+	/**
+	 * updates the given station information instance.
+	 */
 	usteer_sta_info_update(si, signal, false);
+	/**
+	 * set roam scan time to the current time as a UNIX-timestamp.
+	 * This value is updated by the function 'usteer_update_time'.
+	 */
 	si->roam_scan_done = current_time;
 	si->stats[type].requests++;
 

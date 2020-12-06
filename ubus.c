@@ -422,6 +422,10 @@ static void usteer_add_nr_entry(struct usteer_node *ln, struct usteer_node *node
  * @return
  */
 int usteer_ubus_notify_client_disassoc(struct sta_info *si){
+    /**
+	 * convert si->node into usteer local node
+	 * and fix pointers
+	 */
 	struct usteer_local_node *ln = container_of(si->node, struct usteer_local_node, node);
 	struct usteer_remote_node *rn;
 	struct usteer_node *node;
@@ -444,7 +448,11 @@ int usteer_ubus_notify_client_disassoc(struct sta_info *si){
  * @return
  */
 int usteer_ubus_trigger_client_scan(struct sta_info *si){
-	struct usteer_local_node *ln = container_of(si->node, struct usteer_local_node, node);
+    /**
+     * convert si->node into usteer local node
+     * and fix pointers
+     */
+    struct usteer_local_node *ln = container_of(si->node, struct usteer_local_node, node);
 
 	si->scan_band = !si->scan_band;
 
@@ -465,6 +473,10 @@ int usteer_ubus_trigger_client_scan(struct sta_info *si){
  * @param si
  */
 void usteer_ubus_kick_client(struct sta_info *si){
+    /**
+	 * convert si->node into usteer local node
+	 * and fix pointers
+	 */
 	struct usteer_local_node *ln = container_of(si->node, struct usteer_local_node, node);
 
 	MSG_T_STA("load_kick_reason_code", si->sta->addr,

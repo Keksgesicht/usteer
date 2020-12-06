@@ -131,11 +131,10 @@ static void usteer_timeout_cb(struct uloop_timeout *timeout){
 	bool found;
 	uint32_t time;
 
-	/**
-	 * ??
-	 * That weird macro black magic, it does some kind of weird conversion
-	 * NEEDS TO BE CLARIFIED
-	 */
+    /**
+     * convert timeout into usteer timeout queue
+     * and fix pointers
+     */
 	q = container_of(timeout, struct usteer_timeout_queue, timeout);
 	do {
 		found = false;
