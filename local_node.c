@@ -340,7 +340,7 @@ usteer_local_node_update(struct uloop_timeout *timeout)
 	ln = container_of(timeout, struct usteer_local_node, update);
 	node = &ln->node;
 
-	MSG_T("local_sta_udpate", "timeout (%u) expired\n",
+	MSG_T("local_sta_update", "timeout (%u) expired\n",
 		config.local_sta_update);
 
 	list_for_each_entry(h, &node_handlers, list) {
