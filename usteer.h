@@ -211,9 +211,9 @@ struct usteer_config {
 	uint32_t sta_block_timeout;
 
 	/**
-	 * Use: ?
+	 * Timeout after connect for response
 	 * 
-	 * Default value: 120k
+	 * Default value: 120k (120 sec)
 	 */
 	uint32_t local_sta_timeout;
 

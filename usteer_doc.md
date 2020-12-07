@@ -42,4 +42,5 @@
 | `load_kick_min_clients` | When load-kicking is enabled, this property determines at which point a node stops to load-kick clients based on the amount of connected clients. If the number of connected clients is less than this property, no clients will be kicked even if they are over the load-threshold. | `10` |  `0-...` |
 | `load_kick_reason_code` | The reason why a client was load-kicked. Default is WLAN_REASON_DISASSOC_AP_BUSY (5) | `5` |  `? (ANY)` |
 | `node_up_script` | ? | `0` |  `?` |
+| `local_sta_timeout` | Timeout after connect for response | `120k` | `0-...`
 <br>
