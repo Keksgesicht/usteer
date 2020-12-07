@@ -62,6 +62,15 @@ enum usteer_node_type {
 	NODE_TYPE_REMOTE,
 };
 
+enum roam_trigger_state {
+	ROAM_TRIGGER_IDLE, 
+	ROAM_TRIGGER_SCAN, 
+	ROAM_TRIGGER_SCAN_DONE, 
+	ROAM_TRIGGER_WAIT_KICK, 
+	ROAM_TRIGGER_NOTIFY_KICK, 
+	ROAM_TRIGGER_KICK
+};
+
 struct sta_info;
 struct usteer_local_node;
 
@@ -194,13 +203,33 @@ struct usteer_config {
 
 
 			/* -----------< sta >-----------*/
+	/**
+	 * Timeout after a station timeout is resetted.
+	 * 
+	 * Default value: 30k
+	 */
 	uint32_t sta_block_timeout;
 
+	/**
+	 * Use: ?
+	 * 
+	 * Default value: 120k
+	 */
 	uint32_t local_sta_timeout;
 
+	/**
+	 * Use: ?
+	 * 
+	 * Default value: 1k
+	 */
 	uint32_t local_sta_update;
 
-
+	/**
+	 * Max amount of retries before an event or request from a station is treated with
+	 * urgency.
+	 * 
+	 * Default value: 5
+	 */
 	uint32_t max_retry_band;
 
 	/**
@@ -238,21 +267,35 @@ struct usteer_config {
 	uint32_t load_balancing_threshold;
 
 	/**
-	 * Use: ?
+	 * How frequently usteer updates remote information.
 	 * 
 	 * Default value: 1k
 	 */
 	uint32_t remote_update_interval;
 
 	/**
-	 * Use: ?
+	 * Time until usteer consideres a remote node as timeouted and removes it
+	 * from it's known nodes.
 	 * 
 	 * Default value: 120k
 	 */
 	uint32_t remote_node_timeout;
 
+	/**
+	 * Signal-noise-ratio. Currently not used.
+	 * 
+	 * This value is used as a threshold that determines at what signal noise ratio a local node
+	 * is kicked from a station.
+	 * 
+	 * Default value: 0
+	 */
 	int32_t min_snr;
 
+	/**
+	 * Minimum signal-to-noise ratio so that a client request is accepted.
+	 * 
+	 * Default value: 0
+	 */
 	int32_t min_connect_snr;
 
 	/**
@@ -267,6 +310,11 @@ struct usteer_config {
 
 	
 			/* -----------< roaming >-----------*/
+	/**
+	 * Use: ?
+	 * 
+	 * Default value: 0
+	 */
 	int32_t roam_scan_snr;
 
 	/**
@@ -283,6 +331,11 @@ struct usteer_config {
 	 */
 	uint32_t roam_scan_interval;
 	
+	/**
+	 * Use: ?
+	 * 
+	 * Default value: 0
+	 */
 	int32_t roam_trigger_snr;
 
 	/**
@@ -325,6 +378,8 @@ struct usteer_config {
 	uint32_t load_kick_threshold;
 
 	/**
+	 * Delay before a client is load-kicked.
+	 * 
 	 * Default value: 10k
 	 */
 	uint32_t load_kick_delay;
@@ -345,6 +400,11 @@ struct usteer_config {
 	uint32_t load_kick_reason_code;
 
 
+	/**
+	 * Use: ?
+	 * 
+	 * Default value: 0
+	 */
 	const char *node_up_script;
 };
 
@@ -353,20 +413,6 @@ struct sta_info_stats {
 	uint32_t blocked_cur;
 	uint32_t blocked_total;
 	uint32_t blocked_last_time;
-};
-
-#define __roam_trigger_states \
-	_S(IDLE) \
-	_S(SCAN) \
-	_S(SCAN_DONE) \
-	_S(WAIT_KICK) \
-	_S(NOTIFY_KICK) \
-	_S(KICK)
-
-enum roam_trigger_state {
-#define _S(n) ROAM_TRIGGER_##n,
-	__roam_trigger_states
-#undef _S
 };
 
 /**
@@ -411,6 +457,9 @@ struct sta_info {
 	 */
 	uint64_t roam_kick;
 
+	/**
+	 * Set to the current time after a roam scan was completed. 
+	 */
 	uint64_t roam_scan_done;
 
 	/**
