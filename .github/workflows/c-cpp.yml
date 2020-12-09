@@ -1,4 +1,4 @@
-name: C/C++ CI
+name: usteer CI
 
 on:
   push:
@@ -12,19 +12,31 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-
+    
     env:
-      arch: "ath79/generic"
-      sdk: "openwrt-sdk-ath79-generic_gcc-8.4.0_musl.Linux-x86_64"
+      sdk_name: "openwrt-sdk"
+      sdk_version: "gcc-8.4.0_musl.Linux-x86_64" 
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: WDR4300
+            ARCH: "ath79"
+            MODEL: "generic"
+          - name: RPi_3B_plus
+            ARCH: "bcm27xx"
+            MODEL: "bcm2710"
 
     steps:
     - uses: actions/checkout@v2
     - name: compile
       run: |
         cd ..
-        wget "https://downloads.openwrt.org/snapshots/targets/${{ env.arch }}/${{ env.sdk }}.tar.xz"
-        tar -xf "${{ env.sdk }}.tar.xz"
-        cd "${{ env.sdk }}/"
+        SDK_FILE="${{ env.sdk_name }}-${{ matrix.ARCH }}-${{ matrix.MODEL }}_${{ env.sdk_version }}"
+        wget "https://downloads.openwrt.org/snapshots/targets/${{ matrix.ARCH }}/${{ matrix.MODEL }}/${SDK_FILE}.tar.xz"
+        tar -xf "${SDK_FILE}.tar.xz"
+        cd "${SDK_FILE}/"
         cp feeds.conf.default feeds.conf
         echo "src-link usteer `realpath $PWD/../usteer`" >> feeds.conf
         ./scripts/feeds update base packages usteer
@@ -33,10 +45,9 @@ jobs:
         echo "CONFIG_FEED_usteer=y" >> .config
         make package/usteer/download
         make package/usteer/prepare
-        make package/usteer/compile
+        make -j1 V=sc package/usteer/compile
         mv bin/ ../usteer/actions-output/
-
     - uses: actions/upload-artifact@v2
       with:
-        name: openwrt-packages
-        path: "actions-output/"
+        name: usteer-package-${{ matrix.name }}
+        path: "actions-output/packages/*/usteer/usteer*.ipk"
