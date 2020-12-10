@@ -159,6 +159,45 @@ static void nl80211_update_node(struct uloop_timeout *t)
 	nl80211_get_survey(&ln->node, ln, nl80211_update_node_result);
 }
 
+static int
+hostapd_bss_get_status(struct ubus_context *ctx, struct ubus_object *obj,
+		      		   struct ubus_request_data *req, const char *method,
+		      		   struct blob_attr *msg)
+{
+	struct hostapd_data *hapd = container_of(obj, struct hostapd_data, ubus.obj);
+	void *airtime_table, *dfs_table;
+	struct os_reltime now;
+	char phy_name[17];
+	char mac_buf[20];
+
+	blob_buf_init(&b, 0);
+	blobmsg_add_string(&b, "status", hostapd_state_text(hapd->iface->state));
+	blobmsg_add_u32(&b, "freq", hapd->iface->freq);
+
+	snprintf(phy_name, 17, "%s", hapd->iface->phy);
+	blobmsg_add_string(&b, "phy", phy_name);
+
+	/* Airtime */
+	airtime_table = blobmsg_open_table(&b, "airtime");
+	blobmsg_add_u64(&b, "time", hapd->iface->last_channel_time);
+	blobmsg_add_u64(&b, "time_busy", hapd->iface->last_channel_time_busy);
+	blobmsg_add_u16(&b, "utilization", hapd->iface->channel_utilization);
+	blobmsg_close_table(&b, airtime_table);
+
+	/* DFS */
+	dfs_table = blobmsg_open_table(&b, "dfs");
+	blobmsg_add_u32(&b, "cac_seconds", hapd->iface->dfs_cac_ms / 1000);
+	blobmsg_add_u8(&b, "cac_active", !!(hapd->iface->cac_started));
+	os_reltime_age(&hapd->iface->dfs_cac_start, &now);
+	blobmsg_add_u32(&b, "cac_seconds_left",
+			hapd->iface->cac_started ? hapd->iface->dfs_cac_ms / 1000 - now.sec : 0);
+	blobmsg_close_table(&b, dfs_table);
+
+	ubus_send_reply(ctx, req, b.head);
+
+	return 0;
+}
+
 static void nl80211_init_node(struct usteer_node *node)
 {
 	struct usteer_local_node *ln = container_of(node, struct usteer_local_node, node);
