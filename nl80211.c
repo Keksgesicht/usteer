@@ -54,8 +54,27 @@ struct nl80211_freqlist_req {
 	void *priv;
 };
 
+static struct blob_buf b;
+
+enum {
+	STATUS_FREQ,
+	STATUS_NOISE,
+	STATUS_TIME,
+	STATUS_TIME_BUSY,
+	STATUS_MAX,
+};
+
+static const struct blobmsg_policy status_policy[STATUS_MAX] = {
+	[STATUS_FREQ] = { .name = "status", .type = BLOBMSG_TYPE_INT32 },
+	[STATUS_NOISE] = { .name = "freq", .type = BLOBMSG_TYPE_INT32 },
+	[STATUS_TIME] = { .name = "time", .type = BLOBMSG_TYPE_INT64 },
+	[STATUS_TIME_BUSY] = { .name = "time_busy", .type = BLOBMSG_TYPE_INT64 },
+	
+};
+
 static int nl80211_survey_result(struct nl_msg *msg, void *arg)
 {
+
 	static struct nla_policy survey_policy[NL80211_SURVEY_INFO_MAX + 1] = {
 		[NL80211_SURVEY_INFO_FREQUENCY] = { .type = NLA_U32 },
 		[NL80211_SURVEY_INFO_NOISE] = { .type = NLA_U8 },
@@ -82,21 +101,37 @@ static int nl80211_survey_result(struct nl_msg *msg, void *arg)
 	if (!tb_s[NL80211_SURVEY_INFO_FREQUENCY])
 		return NL_SKIP;
 
-	data.freq = nla_get_u32(tb_s[NL80211_SURVEY_INFO_FREQUENCY]);
+	struct blob_attr *tb[STATUS_MAX];
 
+	blob_buf_init(&b, 0);
+	if (blobmsg_parse(status_policy, STATUS_MAX, tb, blob_data(b->head), blob_len(b->head)) != 0) {
+		fprintf(stderr, "Parse failed\n");
+		return;
+	}
+	// data.freq = nla_get_u32(tb_s[NL80211_SURVEY_INFO_FREQUENCY]);
+	data.freq = (uint16_t) blobmsg_data(tb[STATUS_FREQ]);
+	
 	if (tb_s[NL80211_SURVEY_INFO_NOISE])
 		data.noise = (int8_t) nla_get_u8(tb_s[NL80211_SURVEY_INFO_NOISE]);
-
+	
+	/*
 	if (tb_s[NL80211_SURVEY_INFO_CHANNEL_TIME] &&
 	    tb_s[NL80211_SURVEY_INFO_CHANNEL_TIME_BUSY]) {
 		data.time = nla_get_u64(tb_s[NL80211_SURVEY_INFO_CHANNEL_TIME]);
 		data.time_busy = nla_get_u64(tb_s[NL80211_SURVEY_INFO_CHANNEL_TIME_BUSY]);
 	}
-
+	*/
+	void *airtime_table, *dfs_table;
+	airtime_table = blobmsg_open_table(&b, "airtime");
+		data.time = (uint64_t) blobmsg_data(tb[STATUS_TIME]);
+		data.time_busy = (uint64_t) blobmsg_data(tb[STATUS_TIME_BUSY]);
+	blobmsg_close_table(&b, airtime_table);
 	req->cb(req->priv, &data);
-
+	
 	return NL_SKIP;
 }
+
+
 
 static void nl80211_get_survey(struct usteer_node *node, void *priv,
 			       void (*cb)(void *priv, struct usteer_survey_data *d))
@@ -164,15 +199,13 @@ static const struct ubus_method bss_methods[] = {
 static struct ubus_object_type bss_object_type =
 	UBUS_OBJECT_TYPE("hostapd_bss", bss_methods);
 
-
 static void nl80211_update_node(struct uloop_timeout *t)
 {
 	struct usteer_local_node *ln = container_of(t, struct usteer_local_node, nl80211.update);
 
 	uloop_timeout_set(t, 1000);
 	ln->ifindex = if_nametoindex(ln->iface);
-	//nl80211_get_survey(&ln->node, ln, nl80211_update_node_result);
-	ubus_context ubus_ctx* = ubus_connect(NULL);
+	nl80211_get_survey(&ln->node, ln, nl80211_update_node_result);
 	if (ubus_add_object(ubus_ctx, &bss_obj)) {
 		fprintf(stderr, "Failed to register AP ubus object\n");
 	}
