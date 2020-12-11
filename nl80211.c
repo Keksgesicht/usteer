@@ -175,7 +175,6 @@ static void nl80211_update_node(struct uloop_timeout *t)
 	ubus_context ubus_ctx* = ubus_connect(NULL);
 	if (ubus_add_object(ubus_ctx, &bss_obj)) {
 		fprintf(stderr, "Failed to register AP ubus object\n");
-		return 1;
 	}
 }
 
