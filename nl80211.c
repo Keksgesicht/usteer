@@ -157,12 +157,13 @@ static struct ubus_object bss_obj = {
 	.n_methods = ARRAY_SIZE(bss_methods),
 };
 
-static struct ubus_object_type bss_object_type =
-	UBUS_OBJECT_TYPE("hostapd_bss", bss_methods);
-
 static const struct ubus_method bss_methods[] = {
 	UBUS_METHOD_NOARG("get_status", hostapd_bss_get_status),
 };
+
+static struct ubus_object_type bss_object_type =
+	UBUS_OBJECT_TYPE("hostapd_bss", bss_methods);
+
 
 static void nl80211_update_node(struct uloop_timeout *t)
 {
@@ -177,9 +178,6 @@ static void nl80211_update_node(struct uloop_timeout *t)
 		return 1;
 	}
 }
-}
-
-
 
 static void nl80211_init_node(struct usteer_node *node)
 {
