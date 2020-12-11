@@ -150,14 +150,36 @@ static void nl80211_update_node_result(void *priv, struct usteer_survey_data *d)
 	}
 }
 
+static struct ubus_object bss_obj = {
+	.name = "hostapd.wlan0",
+	.type = &bss_object_type,
+	.methods = bss_methods,
+	.n_methods = ARRAY_SIZE(bss_methods),
+};
+
+static struct ubus_object_type bss_object_type =
+	UBUS_OBJECT_TYPE("hostapd_bss", bss_methods);
+
+static const struct ubus_method bss_methods[] = {
+	UBUS_METHOD_NOARG("get_status", hostapd_bss_get_status),
+};
+
 static void nl80211_update_node(struct uloop_timeout *t)
 {
 	struct usteer_local_node *ln = container_of(t, struct usteer_local_node, nl80211.update);
 
 	uloop_timeout_set(t, 1000);
 	ln->ifindex = if_nametoindex(ln->iface);
-	nl80211_get_survey(&ln->node, ln, nl80211_update_node_result);
+	//nl80211_get_survey(&ln->node, ln, nl80211_update_node_result);
+	ubus_context ubus_ctx* = ubus_connect(NULL);
+	if (ubus_add_object(ubus_ctx, &bss_obj)) {
+		fprintf(stderr, "Failed to register AP ubus object\n");
+		return 1;
+	}
 }
+}
+
+
 
 static void nl80211_init_node(struct usteer_node *node)
 {
