@@ -59,8 +59,8 @@ struct hostapd_data {
 	uint64_t time;
 	uint64_t time_busy;
 	uint16_t utilization;
-}
-
+};
+static struct hostapd_data * h_data;
 static struct blob_buf b;
 
 enum {
@@ -72,7 +72,7 @@ enum {
 	__STATUS_MAX,
 };
 
-static const struct blobmsg_policy status_policy[STATUS_MAX] = {
+static const struct blobmsg_policy status_policy[__STATUS_MAX] = {
 	[STATUS_STATUS] = { .name = "status", .type = BLOBMSG_TYPE_INT32 },
 	[STATUS_FREQ] = { .name = "freq", .type = BLOBMSG_TYPE_INT32 },
 	[STATUS_TIME] = { .name = "time", .type = BLOBMSG_TYPE_INT64 },
@@ -80,6 +80,22 @@ static const struct blobmsg_policy status_policy[STATUS_MAX] = {
 	[STATUS_UTILIZATION] = { .name = "utilization", .type = BLOBMSG_TYPE_INT16 },
 	
 };
+static void nl80211_get_hostapd_status_cb(struct ubus_request *req, int type, struct blob_attr *msg){
+	struct blob_attr *tb[__STATUS_MAX];
+	if(!msg)
+		return;
+
+	blobmsg_parse(status_policy,__STATUS_MAX,tb,blob_data(msg),blob_len(msg));
+
+	h_data->freq = (uint16_t) blobmsg_get_u32(tb[STATUS_FREQ]);
+
+	void *airtime_table;
+	airtime_table = blobmsg_open_table(&b, "airtime");
+		h_data->time = blobmsg_get_u64(tb[STATUS_TIME]);
+		h_data->time_busy = blobmsg_get_u64(tb[STATUS_TIME_BUSY]);
+		h_data->utilization = blobmsg_get_u16(tb[STATUS_UTILIZATION]);
+	blobmsg_close_table(&b, airtime_table);
+}
 
 static int nl80211_survey_result(struct nl_msg *msg, void *arg)
 {
@@ -123,12 +139,13 @@ static int nl80211_survey_result(struct nl_msg *msg, void *arg)
 	*/
 
 	//TODO set 5 to Timeout var	and better for loop
+	struct ubus_context *ctx = ubus_connect(NULL);
 	for(int i = 0; i > 1;++i){
-		ubus_invoke(ctx, i, "get_status", b->head, nl80211_get_hostapd_status_cb, NULL, 5 * 1000);
+		ubus_invoke(ctx, i, "get_status", b.head, nl80211_get_hostapd_status_cb, NULL, 5 * 1000);
 	}
-	data.freq = hostapd_data.freq;
-	data.time = hostapd_data.time;
-	data.time_busy = hostapd_data.time_busy;
+	data.freq = h_data->freq;
+	data.time = h_data->time;
+	data.time_busy = h_data->time_busy;
 
 	req->cb(req->priv, &data);
 	
@@ -189,22 +206,7 @@ static void nl80211_update_node_result(void *priv, struct usteer_survey_data *d)
 	}
 }
 
-static void nl80211_get_hostapd_status_cb(struct ubus_request *req, int type, struct blob_attr *msg){
-	struct blob_attr *tb[__STATUS_MAX];
-	if(!msg)
-		return;
 
-	blobmsg_parse(status_policy,STATUS_MAX,tb,blob_data(msg),blob_len(msg));
-
-	hostapd_data.freq = (uint16_t) blobmsg_data(tb[STATUS_FREQ]);
-
-	void *airtime_table, *dfs_table;
-	airtime_table = blobmsg_open_table(&b, "airtime");
-		hostapd_data.time = (uint64_t) blobmsg_data(tb[STATUS_TIME]);
-		hostapd_data.time_busy = (uint64_t) blobmsg_data(tb[STATUS_TIME_BUSY]);
-		hostapd_data.utilization = (uint16_t) blobmsg_data(tb[STATUS_UTILIZATION]);
-	blobmsg_close_table(&b, airtime_table);
-}
 static void nl80211_update_node(struct uloop_timeout *t)
 {
 	struct usteer_local_node *ln = container_of(t, struct usteer_local_node, nl80211.update);
