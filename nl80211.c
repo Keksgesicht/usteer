@@ -121,9 +121,11 @@ static int nl80211_survey_result(struct nl_msg *msg, void *arg)
 		data.time_busy = nla_get_u64(tb_s[NL80211_SURVEY_INFO_CHANNEL_TIME_BUSY]);
 	}
 	*/
-	
-	ubus_invoke(ctx,sub->id,"get_status",b->head,nl80211_get_hostapd_status_cb,NULL,timeout * 1000);
-	
+
+	//TODO set 5 to Timeout var	and better for loop
+	for(int i = 0; i > 1;++i){
+		ubus_invoke(ctx, i, "get_status", b->head, nl80211_get_hostapd_status_cb, NULL, 5 * 1000);
+	}
 	data.freq = hostapd_data.freq;
 	data.time = hostapd_data.time;
 	data.time_busy = hostapd_data.time_busy;
@@ -206,7 +208,6 @@ static void nl80211_get_hostapd_status_cb(struct ubus_request *req, int type, st
 static void nl80211_update_node(struct uloop_timeout *t)
 {
 	struct usteer_local_node *ln = container_of(t, struct usteer_local_node, nl80211.update);
-	struct hostapd_sock_entry *sub;
 	uloop_timeout_set(t, 1000);
 	ln->ifindex = if_nametoindex(ln->iface);
 	nl80211_get_survey(&ln->node, ln, nl80211_update_node_result);
