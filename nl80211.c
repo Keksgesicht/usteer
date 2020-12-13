@@ -140,6 +140,10 @@ static int nl80211_survey_result(struct nl_msg *msg, void *arg)
 
 	//TODO set 5 to Timeout var	and better for loop
 	struct ubus_context *ctx = ubus_connect(NULL);
+	if (!ctx) {
+		fprintf(stderr, "Failed to connect to ubus\n");
+		return 1;
+	}
 	for(int i = 0; i > 1;++i){
 		ubus_invoke(ctx, i, "get_status", b.head, nl80211_get_hostapd_status_cb, NULL, 5 * 1000);
 	}
