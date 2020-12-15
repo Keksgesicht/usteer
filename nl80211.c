@@ -60,7 +60,7 @@ struct hostapd_data {
 	uint64_t time_busy;
 	uint16_t utilization;
 };
-static struct hostapd_data * h_data;
+
 static struct blob_buf b;
 
 enum {
@@ -87,13 +87,13 @@ static void nl80211_get_hostapd_status_cb(struct ubus_request *req, int type, st
 
 	blobmsg_parse(status_policy,__STATUS_MAX,tb,blob_data(msg),blob_len(msg));
 
-	h_data->freq = (uint16_t) blobmsg_get_u32(tb[STATUS_FREQ]);
+	h_data.freq = (uint16_t) blobmsg_get_u32(tb[STATUS_FREQ]);
 
 	void *airtime_table;
 	airtime_table = blobmsg_open_table(&b, "airtime");
-		h_data->time = blobmsg_get_u64(tb[STATUS_TIME]);
-		h_data->time_busy = blobmsg_get_u64(tb[STATUS_TIME_BUSY]);
-		h_data->utilization = blobmsg_get_u16(tb[STATUS_UTILIZATION]);
+		h_data.time = blobmsg_get_u64(tb[STATUS_TIME]);
+		h_data.time_busy = blobmsg_get_u64(tb[STATUS_TIME_BUSY]);
+		h_data.utilization = blobmsg_get_u16(tb[STATUS_UTILIZATION]);
 	blobmsg_close_table(&b, airtime_table);
 }
 
@@ -138,21 +138,27 @@ static int nl80211_survey_result(struct nl_msg *msg, void *arg)
 	}
 	*/
 
-	//TODO set 5 to Timeout var	and better for loop
+	
+
+	int i = nla_get_u32(tb[NL80211_ATTR_IFINDEX]);
+
+
 	struct ubus_context *ctx = ubus_ctx;
 	if (!ctx) {
 		fprintf(stderr, "Failed to connect to ubus\n");
 		return 1;
 	}
-	for(int i = 0; i > 1;++i){
-		ubus_invoke(ctx, i, "get_status", b.head, nl80211_get_hostapd_status_cb, NULL, 5 * 1000);
-	}
-	data.freq = h_data->freq;
-	data.time = h_data->time;
-	data.time_busy = h_data->time_busy;
+	hostapd_data h_data = malloc(sizeof(hostapd_data));
+	//TODO set 5 to Timeout var
+	ubus_invoke(ctx, i, "get_status", b.head, nl80211_get_hostapd_status_cb, NULL, 5 * 1000);
+	
+	
+	data.freq = h_data.freq;
+	data.time = h_data.time;
+	data.time_busy = h_data.time_busy;
 
 	req->cb(req->priv, &data);
-	
+	free(h_data);
 	return NL_SKIP;
 }
 
@@ -198,6 +204,7 @@ static void nl80211_update_node_result(void *priv, struct usteer_survey_data *d)
 	ln->time = d->time;
 	ln->time_busy = d->time_busy;
 
+	//TODO make node.load equal utilisation 
 	if (delta) {
 		float cur = (100 * delta_busy) / delta;
 
