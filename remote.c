@@ -244,9 +244,9 @@ interface_add_node(struct interface *iface, const char *addr, unsigned long id, 
 }
 
 static void
-interface_recv_msg(struct interface *iface, struct in_addr *addr, void *buf, int len)
+interface_recv_msg(struct interface *iface, struct in6_addr *addr, void *buf, int len)
 {
-	char addr_str[INET_ADDRSTRLEN];
+	char addr_str[INET6_ADDRSTRLEN];
 	struct blob_attr *data = buf;
 	struct apmsg msg;
 	struct blob_attr *cur;
@@ -268,7 +268,7 @@ interface_recv_msg(struct interface *iface, struct in_addr *addr, void *buf, int
 	MSG(NETWORK, "Received message on %s (id=%08x->%08x seq=%d len=%d)\n",
 		interface_name(iface), msg.id, local_id, msg.seq, len);
 
-	inet_ntop(AF_INET, addr, addr_str, sizeof(addr_str));
+	inet_ntop(AF_INET6, addr, addr_str, sizeof(addr_str));
 
 	blob_for_each_attr(cur, msg.nodes, rem)
 		interface_add_node(iface, addr_str, msg.id, cur);
@@ -291,8 +291,8 @@ static void
 interface_recv(struct uloop_fd *u, unsigned int events)
 {
 	static char buf[APMGR_BUFLEN];
-	static char cmsg_buf[( CMSG_SPACE(sizeof(struct in_pktinfo)) + sizeof(int)) + 1];
-	static struct sockaddr_in sin;
+	static char cmsg_buf[( CMSG_SPACE(sizeof(struct in6_pktinfo)) + sizeof(int)) + 1];
+	static struct sockaddr_in6 sin;
 	static struct iovec iov = {
 		.iov_base = buf,
 		.iov_len = sizeof(buf)
@@ -305,11 +305,9 @@ interface_recv(struct uloop_fd *u, unsigned int events)
 		.msg_control = cmsg_buf,
 		.msg_controllen = sizeof(cmsg_buf),
 	};
-	struct cmsghdr *cmsg;
 	int len;
 
 	do {
-		struct in_pktinfo *pkti = NULL;
 		struct interface *iface;
 
 		len = recvmsg(u->fd, &msg, 0);
@@ -326,56 +324,43 @@ interface_recv(struct uloop_fd *u, unsigned int events)
 			}
 		}
 
-		for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
-			if (cmsg->cmsg_type != IP_PKTINFO)
-				continue;
-
-			pkti = (struct in_pktinfo *) CMSG_DATA(cmsg);
-		}
-
-		if (!pkti) {
-			MSG(DEBUG, "Received packet without ifindex\n");
-			continue;
-		}
-
-		iface = interface_find_by_ifindex(pkti->ipi_ifindex);
+		iface = interface_find_by_ifindex(sin.sin6_scope_id);
 		if (!iface) {
-			MSG(DEBUG, "Received packet from unconfigured interface %d\n", pkti->ipi_ifindex);
+			MSG(DEBUG, "Received packet from unconfigured interface %d\n", sin.sin6_scope_id);
 			continue;
 		}
 
-		interface_recv_msg(iface, &sin.sin_addr, buf, len);
+		interface_recv_msg(iface, &sin.sin6_addr, buf, len);
 	} while (1);
 }
 
-static void interface_send_msg(struct interface *iface, struct blob_attr *data)
+static void
+interface_send_msg(struct interface *iface, struct blob_attr *data)
 {
-	static size_t cmsg_data[( CMSG_SPACE(sizeof(struct in_pktinfo)) / sizeof(size_t)) + 1];
-	static struct sockaddr_in a;
+	static size_t cmsg_data[( CMSG_SPACE(sizeof(struct in6_pktinfo)) / sizeof(size_t)) + 1];
+	static struct sockaddr_in6 a;
 	static struct iovec iov;
 	static struct msghdr m = {
-		.msg_name = (struct sockaddr *) &a,
+		.msg_name = (struct sockaddr6 *) &a,
 		.msg_namelen = sizeof(a),
 		.msg_iov = &iov,
 		.msg_iovlen = 1,
 		.msg_control = cmsg_data,
-		.msg_controllen = CMSG_LEN(sizeof(struct in_pktinfo)),
+		.msg_controllen = CMSG_LEN(sizeof(struct in6_pktinfo)),
 	};
-	struct in_pktinfo *pkti;
 	struct cmsghdr *cmsg;
 
-	a.sin_family = AF_INET;
-	a.sin_port = htons(16720);
-	a.sin_addr.s_addr = ~0;
+	a.sin6_family = AF_INET6;
+	a.sin6_port = htons(APMGR_PORT);
+	inet_pton(AF_INET6, "ff02::2", &a.sin6_addr);
 
 	memset(cmsg_data, 0, sizeof(cmsg_data));
 	cmsg = CMSG_FIRSTHDR(&m);
 	cmsg->cmsg_len = m.msg_controllen;
-	cmsg->cmsg_level = IPPROTO_IP;
-	cmsg->cmsg_type = IP_PKTINFO;
+	cmsg->cmsg_level = IPPROTO_IPV6;
+	cmsg->cmsg_type = IPV6_PKTINFO;
 
-	pkti = (struct in_pktinfo *) CMSG_DATA(cmsg);
-	pkti->ipi_ifindex = iface->ifindex;
+	a.sin6_scope_id = iface->ifindex;
 
 	iov.iov_base = data;
 	iov.iov_len = blob_pad_len(data);
@@ -520,7 +505,8 @@ usteer_init_local_id(void)
 static void
 usteer_reload_timer(struct uloop_timeout *t)
 {
-	int yes = 1;
+	struct sockaddr_in6 address = {AF_INET6, htons(APMGR_PORT)};
+	struct ipv6_mreq group;
 	int fd;
 
 	if (remote_fd.registered) {
@@ -528,19 +514,20 @@ usteer_reload_timer(struct uloop_timeout *t)
 		close(remote_fd.fd);
 	}
 
-	fd = usock(USOCK_UDP | USOCK_SERVER | USOCK_NONBLOCK |
-		   USOCK_NUMERIC | USOCK_IPV4ONLY,
-		   "0.0.0.0", APMGR_PORT_STR);
-	if (fd < 0) {
-		perror("usock");
+	if((fd = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
+		perror("socket");
+		return;
+	}
+	if (bind(fd, (struct sockaddr *) &address, sizeof address) < 0) {
+		perror("bind");
 		return;
 	}
 
-	if (setsockopt(fd, IPPROTO_IP, IP_PKTINFO, &yes, sizeof(yes)) < 0)
-		perror("setsockopt(IP_PKTINFO)");
-
-	if (setsockopt(fd, SOL_SOCKET, SO_BROADCAST, &yes, sizeof(yes)) < 0)
-		perror("setsockopt(SO_BROADCAST)");
+	group.ipv6mr_interface = 0;
+	inet_pton(AF_INET6, "ff02::2", &group.ipv6mr_multiaddr);
+	if (setsockopt(fd, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, &group, sizeof(group)) < 0) {
+		perror("setsockopt(IPV6_ADD_MEMBERSHIP)");
+	}
 
 	remote_fd.fd = fd;
 	remote_fd.cb = interface_recv;
