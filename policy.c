@@ -213,9 +213,9 @@ usteer_local_node_active_bytes(struct sta_info *si)
 static bool
 is_active_client(struct sta_info *si)
 {
-	uint64_t client_active_ratio;
+	uint64_t client_active_ratio = usteer_local_node_active_bytes(si) * 8;
 	uint64_t config_kick_active_ratio = 50 * 1000;
-	if ((client_active_ratio = usteer_local_node_active_bytes(si)) >= config_kick_active_ratio) {
+	if (client_active_ratio >= config_kick_active_ratio) {
 		MSG_T("load_kick_active",
 			  "client "MAC_ADDR_FMT" is still active (config=%llu) (real=%llu)",
 			  MAC_ADDR_DATA(si->sta->addr), config_kick_active_ratio, client_active_ratio);
