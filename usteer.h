@@ -53,6 +53,16 @@ enum usteer_node_type {
 struct sta_info;
 struct usteer_local_node;
 
+struct sta_active_bytes {
+	uint64_t rx;
+	uint64_t tx;
+};
+
+struct sta_active_bytes_queue {
+	struct sta_active_bytes *data;
+	uint16_t index;
+};
+
 struct usteer_node {
 	struct avl_node avl;
 	struct list_head sta_info;
@@ -198,6 +208,7 @@ struct sta_info {
 	uint64_t roam_scan_done;
 
 	int kick_count;
+	struct sta_active_bytes_queue active_bytes;
 
 	uint8_t scan_band : 1;
 	uint8_t connected : 2;

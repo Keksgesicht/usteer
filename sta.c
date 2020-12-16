@@ -49,6 +49,7 @@ usteer_sta_info_del(struct sta_info *si)
 	usteer_timeout_cancel(&tq, &si->timeout);
 	list_del(&si->list);
 	list_del(&si->node_list);
+	free(si->active_bytes.data);
 	free(si);
 
 	if (list_empty(&sta->nodes))
@@ -106,6 +107,8 @@ usteer_sta_info_get(struct sta *sta, struct usteer_node *node, bool *create)
 	list_add(&si->node_list, &node->sta_info);
 	si->created = current_time;
 	*create = true;
+	uint16_t config_active_seconds = 30;
+	si->active_bytes.data = malloc((config_active_seconds + 3) * sizeof(struct sta_active_bytes));
 
 	return si;
 }
