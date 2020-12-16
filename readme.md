@@ -43,5 +43,7 @@
 | `load_kick_delay` | Delay that usteer waits before load-kicking a client. | `10.000` |  `unsigned 32 bit int` |
 | `load_kick_min_clients` | When load-kicking is enabled, this property determines at which point a node stops to load-kick clients based on the amount of connected clients. If the number of connected clients is less than this property, no clients will be kicked even if they are over the load-threshold. | `10` |  `unsigned 32 bit int` |
 | `load_kick_reason_code` | The reason why a client was load-kicked. Default is WLAN_REASON_DISASSOC_AP_BUSY (5) | `5` |  `802.11-2016 Table 9-45 Reason codes ` |
+| `kick_client_active_sec` | The time interval over which the client transfered bits are measured | `30` | `unsigned 32 bit int` |
+| `kick_client_active_kbits` | How many kilobits the client needs to transfer without getting kicked | `50` | `unsigned 32 bit int` |
 | `node_up_script` | executable that is executed after the usteer node starts up. | `0` |  `string` |
 <br>

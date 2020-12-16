@@ -189,14 +189,13 @@ usteer_update_client_active_bytes(struct sta_info *si, struct blob_attr *data)
 	if (!tb_rxtx[MSG_RX] || !tb_rxtx[MSG_TX])
 		return;
 
-	uint16_t index = si->active_bytes.index + 1;
+	uint32_t index = si->active_bytes.index + 1;
 	active_bytes = &si->active_bytes.data[index];
 	active_bytes->rx = blobmsg_get_u64(tb_rxtx[MSG_RX]);
 	active_bytes->tx = blobmsg_get_u64(tb_rxtx[MSG_TX]);
 
-	uint16_t config_active_seconds = 30;
-	if (index >= (config_active_seconds + 3)) {
-		index -= config_active_seconds + 3;
+	if (index >= (config.kick_client_active_sec + 3)) {
+		index -= config.kick_client_active_sec + 3;
 	}
 	si->active_bytes.index = index;
 }

@@ -60,7 +60,7 @@ struct sta_active_bytes {
 
 struct sta_active_bytes_queue {
 	struct sta_active_bytes *data;
-	uint16_t index;
+	uint32_t index;
 };
 
 struct usteer_node {
@@ -162,6 +162,9 @@ struct usteer_config {
 	uint32_t load_kick_delay;
 	uint32_t load_kick_min_clients;
 	uint32_t load_kick_reason_code;
+
+	uint32_t kick_client_active_sec;
+	uint32_t kick_client_active_kbits;
 
 	const char *node_up_script;
 };

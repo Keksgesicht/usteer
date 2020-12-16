@@ -163,6 +163,8 @@ struct cfg_item {
 	_cfg(U32, load_kick_delay), \
 	_cfg(U32, load_kick_min_clients), \
 	_cfg(U32, load_kick_reason_code), \
+	_cfg(U32, kick_client_active_sec), \
+    _cfg(U32, kick_client_active_kbits), \
 	_cfg(ARRAY_CB, interfaces), \
 	_cfg(STRING_CB, node_up_script)
 
