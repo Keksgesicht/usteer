@@ -181,9 +181,6 @@ usteer_update_client_active_bytes(struct sta_info *si, struct blob_attr *data)
 	struct blob_attr *tb_bytes[__MSG_MAX_BYTES];
 	struct blob_attr *tb_rxtx[__MSG_MAX_RXTX];
 
-	if (!si->connected)
-		return;
-
 	blobmsg_parse(policy_bytes, __MSG_MAX_BYTES, tb_bytes, blobmsg_data(data), blobmsg_data_len(data));
 	if (!tb_bytes[MSG_BYTES])
 		return;
