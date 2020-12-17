@@ -194,8 +194,8 @@ usteer_update_client_active_bytes(struct sta_info *si, struct blob_attr *data)
 	active_bytes->rx = blobmsg_get_u64(tb_rxtx[MSG_RX]);
 	active_bytes->tx = blobmsg_get_u64(tb_rxtx[MSG_TX]);
 
-	if (index >= (config.kick_client_active_sec + 3)) {
-		index -= config.kick_client_active_sec + 3;
+	if (index >= si->active_bytes.size) {
+		index -= si->active_bytes.size;
 	}
 	si->active_bytes.index = index;
 }

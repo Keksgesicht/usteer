@@ -61,6 +61,7 @@ struct sta_active_bytes {
 struct sta_active_bytes_queue {
 	struct sta_active_bytes *data;
 	uint32_t index;
+	uint32_t size;
 };
 
 struct usteer_node {

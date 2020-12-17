@@ -107,7 +107,10 @@ usteer_sta_info_get(struct sta *sta, struct usteer_node *node, bool *create)
 	list_add(&si->node_list, &node->sta_info);
 	si->created = current_time;
 	*create = true;
-	si->active_bytes.data = calloc(config.kick_client_active_sec + 3, sizeof(struct sta_active_bytes));
+
+	uint32_t kick_active_size = config.kick_client_active_sec + 3;
+	si->active_bytes.data = calloc(kick_active_size, sizeof(struct sta_active_bytes));
+	si->active_bytes.size = kick_active_size;
 
 	return si;
 }
