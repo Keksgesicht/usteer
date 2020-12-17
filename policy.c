@@ -186,7 +186,7 @@ usteer_check_request(struct sta_info *si, enum usteer_event_type type)
 	return false;
 }
 
-static uint64_t
+uint64_t
 usteer_local_node_active_bytes(struct sta_info *si)
 {
 	struct sta_active_bytes_queue bytes_queue = si->active_bytes;
