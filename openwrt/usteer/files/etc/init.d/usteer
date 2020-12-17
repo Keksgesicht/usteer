@@ -52,6 +52,7 @@ uci_usteer() {
 	local cfg="$1"
 
 	uci_option_to_json_bool "$cfg" syslog
+	uci_option_to_json_bool "$cfg" remote_disabled
 	uci_option_to_json_bool "$cfg" load_kick_enabled
 	uci_option_to_json_string "$cfg" node_up_script
 

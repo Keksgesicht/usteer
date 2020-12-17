@@ -138,7 +138,8 @@ struct cfg_item {
 };
 
 #define __config_items \
-	_cfg(BOOL, syslog), \
+	_cfg(BOOL, syslog),
+	_cfg(BOOL, remote_disabled), \
 	_cfg(U32, debug_level), \
 	_cfg(U32, sta_block_timeout), \
 	_cfg(U32, local_sta_timeout), \
