@@ -103,8 +103,6 @@ usteer_sta_info_get(struct sta *sta, struct usteer_node *node, bool *create)
 	si = calloc(1, sizeof(*si));
 	si->node = node;
 	si->sta = sta;
-	list_add(&si->list, &sta->nodes);
-	list_add(&si->node_list, &node->sta_info);
 	si->created = current_time;
 	*create = true;
 
@@ -112,6 +110,8 @@ usteer_sta_info_get(struct sta *sta, struct usteer_node *node, bool *create)
 	si->active_bytes.data = calloc(kick_active_size, sizeof(struct sta_active_bytes));
 	si->active_bytes.size = kick_active_size;
 
+	list_add(&si->list, &sta->nodes);
+	list_add(&si->node_list, &node->sta_info);
 	return si;
 }
 
