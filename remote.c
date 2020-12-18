@@ -364,9 +364,10 @@ interface_send_msg(struct interface *iface, struct blob_attr *data)
 
 	iov.iov_base = data;
 	iov.iov_len = blob_pad_len(data);
-
-	if (sendmsg(remote_fd.fd, &m, 0) < 0)
-		perror("sendmsg");
+	if(!config.remote.disabled){
+		if (sendmsg(remote_fd.fd, &m, 0) < 0)
+			perror("sendmsg");
+	}
 }
 
 static void usteer_send_sta_info(struct sta_info *sta)
@@ -410,12 +411,13 @@ static void usteer_send_node(struct usteer_node *node, struct sta_info *sta)
 			 blob_len(node->script_data));
 
 	s = blob_nest_start(&buf, APMSG_NODE_STATIONS);
-
-	if (sta) {
-		usteer_send_sta_info(sta);
-	} else {
-		list_for_each_entry(sta, &node->sta_info, node_list)
+	if(!config.remote_disabled){
+		if (sta) {
 			usteer_send_sta_info(sta);
+		} else {
+			list_for_each_entry(sta, &node->sta_info, node_list)
+				usteer_send_sta_info(sta);
+		}
 	}
 
 	blob_nest_end(&buf, s);
@@ -451,7 +453,7 @@ usteer_update_send(void *c)
 	struct interface *iface;
 
 	blob_nest_end(&buf, c);
-
+	
 	vlist_for_each_element(&interfaces, iface, node)
 		interface_send_msg(iface, buf.head);
 }
