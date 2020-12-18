@@ -364,7 +364,7 @@ interface_send_msg(struct interface *iface, struct blob_attr *data)
 
 	iov.iov_base = data;
 	iov.iov_len = blob_pad_len(data);
-	if(!config.remote.disabled){
+	if(!config.remote_disabled){
 		if (sendmsg(remote_fd.fd, &m, 0) < 0)
 			perror("sendmsg");
 	}
@@ -453,7 +453,7 @@ usteer_update_send(void *c)
 	struct interface *iface;
 
 	blob_nest_end(&buf, c);
-	
+
 	vlist_for_each_element(&interfaces, iface, node)
 		interface_send_msg(iface, buf.head);
 }
