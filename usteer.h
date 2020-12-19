@@ -165,7 +165,7 @@ struct usteer_config {
 	uint32_t load_kick_reason_code;
 
 	uint32_t kick_client_active_sec;
-	uint32_t kick_client_active_kbits;
+	uint32_t kick_client_active_bits;
 
 	const char *node_up_script;
 };
@@ -243,7 +243,7 @@ bool usteer_handle_sta_event(struct usteer_node *node, const uint8_t *addr,
 void usteer_local_nodes_init(struct ubus_context *ctx);
 void usteer_local_node_kick(struct usteer_local_node *ln);
 
-uint64_t usteer_local_node_active_bytes(struct sta_info *si);
+uint64_t usteer_local_node_active_bits(struct sta_info *si);
 
 void usteer_ubus_init(struct ubus_context *ctx);
 void usteer_ubus_kick_client(struct sta_info *si);

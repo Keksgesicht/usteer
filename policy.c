@@ -187,7 +187,7 @@ usteer_check_request(struct sta_info *si, enum usteer_event_type type)
 }
 
 uint64_t
-usteer_local_node_active_bytes(struct sta_info *si)
+usteer_local_node_active_bits(struct sta_info *si)
 {
 	struct sta_active_bytes_queue bytes_queue = si->active_bytes;
 	uint32_t index = bytes_queue.index;
@@ -212,23 +212,22 @@ usteer_local_node_active_bytes(struct sta_info *si)
 	tx_delta = data_new.tx - data_old.tx;
 
 	uint64_t time_diff = time_shorter ? size_config : size_alloc;
-	return (rx_delta + tx_delta) / time_diff;
+	return ((rx_delta + tx_delta) / time_diff) * 8;
 }
 
 static bool
 is_active_client(struct sta_info *si)
 {
-	uint64_t client_active_ratio = usteer_local_node_active_bytes(si) * 8;
-	uint64_t config_kick_active_ratio = config.kick_client_active_kbits * 1000;
-	if (client_active_ratio >= config_kick_active_ratio) {
+	uint64_t client_active_ratio = usteer_local_node_active_bits(si);
+	if (client_active_ratio >= config.kick_client_active_bits) {
 		MSG_T("load_kick_active",
 			  "client "MAC_ADDR_FMT" is still active (config=%llu) (real=%llu)",
-			  MAC_ADDR_DATA(si->sta->addr), config_kick_active_ratio, client_active_ratio);
+			  MAC_ADDR_DATA(si->sta->addr), config.kick_client_active_bits, client_active_ratio);
 		return true;
 	}
 	MSG_T("load_kick_active",
 		  "client "MAC_ADDR_FMT" is inactive (config=%llu) (real=%llu)",
-		  MAC_ADDR_DATA(si->sta->addr), config_kick_active_ratio, client_active_ratio);
+		  MAC_ADDR_DATA(si->sta->addr), config.kick_client_active_bits, client_active_ratio);
 	return false;
 }
 

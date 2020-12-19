@@ -93,7 +93,7 @@ void usteer_init_defaults(void)
 	config.load_kick_reason_code = 5; /* WLAN_REASON_DISASSOC_AP_BUSY */
 
 	config.kick_client_active_sec = 30;
-	config.kick_client_active_kbits = 50;
+	config.kick_client_active_bits = 50000;
 
 	config.debug_level = MSG_FATAL;
 }
