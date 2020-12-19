@@ -107,6 +107,7 @@ usteer_ubus_get_client_info(struct ubus_context *ctx, struct ubus_object *obj,
 		for (i = 0; i < __EVENT_TYPE_MAX; i++)
 			usteer_ubus_add_stats(&si->stats[EVENT_TYPE_PROBE], event_types[i]);
 		blobmsg_close_table(&b, _s);
+		blobmsg_add_u64(&b, "average_data_rate", usteer_local_node_active_bits(si));
 		blobmsg_close_table(&b, _cur_n);
 	}
 	blobmsg_close_table(&b, _n);
@@ -163,6 +164,8 @@ struct cfg_item {
 	_cfg(U32, load_kick_delay), \
 	_cfg(U32, load_kick_min_clients), \
 	_cfg(U32, load_kick_reason_code), \
+	_cfg(U32, kick_client_active_sec), \
+    _cfg(U32, kick_client_active_bits), \
 	_cfg(ARRAY_CB, interfaces), \
 	_cfg(STRING_CB, node_up_script)
 

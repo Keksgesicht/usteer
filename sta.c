@@ -49,6 +49,7 @@ usteer_sta_info_del(struct sta_info *si)
 	usteer_timeout_cancel(&tq, &si->timeout);
 	list_del(&si->list);
 	list_del(&si->node_list);
+	free(si->active_bytes.data);
 	free(si);
 
 	if (list_empty(&sta->nodes))
@@ -102,11 +103,15 @@ usteer_sta_info_get(struct sta *sta, struct usteer_node *node, bool *create)
 	si = calloc(1, sizeof(*si));
 	si->node = node;
 	si->sta = sta;
-	list_add(&si->list, &sta->nodes);
-	list_add(&si->node_list, &node->sta_info);
 	si->created = current_time;
 	*create = true;
 
+	uint32_t kick_active_size = config.kick_client_active_sec + 3;
+	si->active_bytes.data = calloc(kick_active_size, sizeof(struct sta_active_bytes));
+	si->active_bytes.size = kick_active_size;
+
+	list_add(&si->list, &sta->nodes);
+	list_add(&si->node_list, &node->sta_info);
 	return si;
 }
 

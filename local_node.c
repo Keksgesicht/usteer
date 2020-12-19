@@ -161,6 +161,46 @@ usteer_local_node_assoc_update(struct sta_info *si, struct blob_attr *data)
 }
 
 static void
+usteer_update_client_active_bytes(struct sta_info *si, struct blob_attr *data)
+{
+	enum {
+		MSG_RX,
+		MSG_TX,
+		MSG_BYTES,
+		__MSG_MAX_BYTES,
+		__MSG_MAX_RXTX,
+	};
+	static struct blobmsg_policy policy_bytes[__MSG_MAX_BYTES] = {
+			[MSG_BYTES] = { "bytes", BLOBMSG_TYPE_TABLE },
+	};
+	static struct blobmsg_policy policy_rxtx[__MSG_MAX_RXTX] = {
+			[MSG_RX] = { "rx", BLOBMSG_TYPE_INT64 },
+			[MSG_TX] = { "tx", BLOBMSG_TYPE_INT64 },
+	};
+	struct sta_active_bytes *active_bytes;
+	struct blob_attr *tb_bytes[__MSG_MAX_BYTES];
+	struct blob_attr *tb_rxtx[__MSG_MAX_RXTX];
+
+	blobmsg_parse(policy_bytes, __MSG_MAX_BYTES, tb_bytes, blobmsg_data(data), blobmsg_data_len(data));
+	if (!tb_bytes[MSG_BYTES])
+		return;
+
+	blobmsg_parse(policy_rxtx, __MSG_MAX_RXTX, tb_rxtx, blobmsg_data(tb_bytes[MSG_BYTES]), blobmsg_data_len(tb_bytes[MSG_BYTES]));
+	if (!tb_rxtx[MSG_RX] || !tb_rxtx[MSG_TX])
+		return;
+
+	uint32_t index = si->active_bytes.index + 1;
+	active_bytes = &si->active_bytes.data[index];
+	active_bytes->rx = blobmsg_get_u64(tb_rxtx[MSG_RX]);
+	active_bytes->tx = blobmsg_get_u64(tb_rxtx[MSG_TX]);
+
+	if (index >= si->active_bytes.size) {
+		index -= si->active_bytes.size;
+	}
+	si->active_bytes.index = index;
+}
+
+static void
 usteer_local_node_set_assoc(struct usteer_local_node *ln, struct blob_attr *cl)
 {
 	struct usteer_node *node = &ln->node;
@@ -194,6 +234,8 @@ usteer_local_node_set_assoc(struct usteer_local_node *ln, struct blob_attr *cl)
 		usteer_local_node_assoc_update(si, cur);
 		if (si->connected == 1)
 			n_assoc++;
+
+		usteer_update_client_active_bytes(si, cur);
 	}
 
 	node->n_assoc = n_assoc;

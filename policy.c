@@ -186,6 +186,51 @@ usteer_check_request(struct sta_info *si, enum usteer_event_type type)
 	return false;
 }
 
+uint64_t
+usteer_local_node_active_bits(struct sta_info *si)
+{
+	struct sta_active_bytes_queue bytes_queue = si->active_bytes;
+	uint32_t index = bytes_queue.index;
+	struct sta_active_bytes data_old;
+	struct sta_active_bytes data_new;
+	uint64_t rx_delta;
+	uint64_t tx_delta;
+
+	uint32_t size_config = config.kick_client_active_sec;
+	uint32_t size_alloc = si->active_bytes.size;
+	bool time_shorter = size_config < size_alloc;
+
+	uint32_t index_dist = time_shorter ? size_alloc - size_config : 0;
+	uint32_t old = index + 3 + index_dist;
+	if (old >= si->active_bytes.size) {
+		old -= si->active_bytes.size;
+	}
+
+	data_old = bytes_queue.data[old];
+	data_new = bytes_queue.data[index];
+	rx_delta = data_new.rx - data_old.rx;
+	tx_delta = data_new.tx - data_old.tx;
+
+	uint64_t time_diff = time_shorter ? size_config : size_alloc;
+	return ((rx_delta + tx_delta) / time_diff) * 8;
+}
+
+static bool
+is_active_client(struct sta_info *si)
+{
+	uint64_t client_active_ratio = usteer_local_node_active_bits(si);
+	if (client_active_ratio >= config.kick_client_active_bits) {
+		MSG_T("load_kick_active",
+			  "client "MAC_ADDR_FMT" is still active (config=%llu) (real=%llu)",
+			  MAC_ADDR_DATA(si->sta->addr), config.kick_client_active_bits, client_active_ratio);
+		return true;
+	}
+	MSG_T("load_kick_active",
+		  "client "MAC_ADDR_FMT" is inactive (config=%llu) (real=%llu)",
+		  MAC_ADDR_DATA(si->sta->addr), config.kick_client_active_bits, client_active_ratio);
+	return false;
+}
+
 static bool
 is_more_kickable(struct sta_info *si_cur, struct sta_info *si_new)
 {
@@ -317,7 +362,7 @@ usteer_local_node_roam_check(struct usteer_local_node *ln)
 	min_signal = snr_to_signal(&ln->node, min_signal);
 
 	list_for_each_entry(si, &ln->node.sta_info, node_list) {
-		if (!si->connected || si->signal >= min_signal ||
+		if (!si->connected || si->signal >= min_signal || is_active_client(si) ||
 		    current_time - si->roam_kick < config.roam_trigger_interval) {
 			usteer_roam_set_state(si, ROAM_TRIGGER_IDLE);
 			continue;
@@ -345,6 +390,9 @@ usteer_local_node_snr_kick(struct usteer_local_node *ln)
 
 	list_for_each_entry(si, &ln->node.sta_info, node_list) {
 		if (!si->connected)
+			continue;
+
+		if (is_active_client(si))
 			continue;
 
 		if (si->signal >= min_signal)
@@ -406,6 +454,9 @@ usteer_local_node_kick(struct usteer_local_node *ln)
 		struct sta_info *tmp;
 
 		if (!si->connected)
+			continue;
+
+		if (is_active_client(si))
 			continue;
 
 		if (is_more_kickable(kick1, si))
