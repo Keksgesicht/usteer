@@ -306,32 +306,33 @@ interface_recv(struct uloop_fd *u, unsigned int events)
 		.msg_controllen = sizeof(cmsg_buf),
 	};
 	int len;
-
-	do {
-		struct interface *iface;
-
-		len = recvmsg(u->fd, &msg, 0);
-		if (len < 0) {
-			switch (errno) {
-			case EAGAIN:
-				return;
-			case EINTR:
-				continue;
-			default:
-				perror("recvmsg");
-				uloop_fd_delete(u);
-				return;
+	if(!remote_disabled){
+		do {
+			struct interface *iface;
+	
+			len = recvmsg(u->fd, &msg, 0);
+			if (len < 0) {
+				switch (errno) {
+				case EAGAIN:
+					return;
+				case EINTR:
+					continue;
+				default:
+					perror("recvmsg");
+					uloop_fd_delete(u);
+					return;
+				}
 			}
-		}
-
-		iface = interface_find_by_ifindex(sin.sin6_scope_id);
-		if (!iface) {
-			MSG(DEBUG, "Received packet from unconfigured interface %d\n", sin.sin6_scope_id);
-			continue;
-		}
-
-		interface_recv_msg(iface, &sin.sin6_addr, buf, len);
-	} while (1);
+	
+			iface = interface_find_by_ifindex(sin.sin6_scope_id);
+			if (!iface) {
+				MSG(DEBUG, "Received packet from unconfigured interface %d\n", sin.sin6_scope_id);
+				continue;
+			}
+	
+			interface_recv_msg(iface, &sin.sin6_addr, buf, len);
+		} while (1);
+	}
 }
 
 static void
