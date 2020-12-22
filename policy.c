@@ -189,30 +189,13 @@ usteer_check_request(struct sta_info *si, enum usteer_event_type type)
 uint64_t
 usteer_local_node_active_bits(struct sta_info *si)
 {
-	struct sta_active_bytes_queue bytes_queue = si->active_bytes;
-	uint32_t index = bytes_queue.index;
-	struct sta_active_bytes data_old;
-	struct sta_active_bytes data_new;
+	struct sta_active_bytes active_bytes = si->active_bytes;
 	uint64_t rx_delta;
 	uint64_t tx_delta;
 
-	uint32_t size_config = config.kick_client_active_sec;
-	uint32_t size_alloc = si->active_bytes.size;
-	bool time_shorter = size_config < size_alloc;
-
-	uint32_t index_dist = time_shorter ? size_alloc - size_config : 0;
-	uint32_t old = index + 3 + index_dist;
-	if (old >= si->active_bytes.size) {
-		old -= si->active_bytes.size;
-	}
-
-	data_old = bytes_queue.data[old];
-	data_new = bytes_queue.data[index];
-	rx_delta = data_new.rx - data_old.rx;
-	tx_delta = data_new.tx - data_old.tx;
-
-	uint64_t time_diff = time_shorter ? size_config : size_alloc;
-	return ((rx_delta + tx_delta) / time_diff) * 8;
+	rx_delta = active_bytes.data[1][0] - active_bytes.data[0][0];
+	tx_delta = active_bytes.data[1][1] - active_bytes.data[0][1];
+	return ((rx_delta + tx_delta) / config.kick_client_active_sec) * 8;
 }
 
 static bool

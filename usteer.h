@@ -53,17 +53,6 @@ enum usteer_node_type {
 struct sta_info;
 struct usteer_local_node;
 
-struct sta_active_bytes {
-	uint64_t rx;
-	uint64_t tx;
-};
-
-struct sta_active_bytes_queue {
-	struct sta_active_bytes *data;
-	uint32_t index;
-	uint32_t size;
-};
-
 struct usteer_node {
 	struct avl_node avl;
 	struct list_head sta_info;
@@ -191,6 +180,11 @@ enum roam_trigger_state {
 #undef _S
 };
 
+struct sta_active_bytes {
+	uint64_t data[2][2];
+	uint64_t last_time;
+};
+
 struct sta_info {
 	struct list_head list;
 	struct list_head node_list;
@@ -212,7 +206,7 @@ struct sta_info {
 	uint64_t roam_scan_done;
 
 	int kick_count;
-	struct sta_active_bytes_queue active_bytes;
+	struct sta_active_bytes active_bytes;
 
 	uint8_t scan_band : 1;
 	uint8_t connected : 2;
