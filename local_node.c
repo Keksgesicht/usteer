@@ -177,9 +177,13 @@ usteer_update_client_active_bytes(struct sta_info *si, struct blob_attr *data)
 			[MSG_RX] = { "rx", BLOBMSG_TYPE_INT64 },
 			[MSG_TX] = { "tx", BLOBMSG_TYPE_INT64 },
 	};
-	struct sta_active_bytes *active_bytes;
+	struct sta_active_bytes active_bytes = si->active_bytes;
 	struct blob_attr *tb_bytes[__MSG_MAX_BYTES];
 	struct blob_attr *tb_rxtx[__MSG_MAX_RXTX];
+	uint64_t ctime = current_time;
+
+	if (ctime - active_bytes.last_time < config.kick_client_active_sec * 1000)
+		return;
 
 	blobmsg_parse(policy_bytes, __MSG_MAX_BYTES, tb_bytes, blobmsg_data(data), blobmsg_data_len(data));
 	if (!tb_bytes[MSG_BYTES])
@@ -189,15 +193,12 @@ usteer_update_client_active_bytes(struct sta_info *si, struct blob_attr *data)
 	if (!tb_rxtx[MSG_RX] || !tb_rxtx[MSG_TX])
 		return;
 
-	uint32_t index = si->active_bytes.index + 1;
-	active_bytes = &si->active_bytes.data[index];
-	active_bytes->rx = blobmsg_get_u64(tb_rxtx[MSG_RX]);
-	active_bytes->tx = blobmsg_get_u64(tb_rxtx[MSG_TX]);
+	memcpy(active_bytes.data[0], active_bytes.data[1], sizeof(active_bytes.data[1]));
+	active_bytes.data[1][0] = blobmsg_get_u64(tb_rxtx[MSG_RX]);
+	active_bytes.data[1][1] = blobmsg_get_u64(tb_rxtx[MSG_TX]);
 
-	if (index >= si->active_bytes.size) {
-		index -= si->active_bytes.size;
-	}
-	si->active_bytes.index = index;
+	active_bytes.last_time = ctime;
+	si->active_bytes = active_bytes;
 }
 
 static void
