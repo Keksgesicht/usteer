@@ -96,6 +96,8 @@ void usteer_init_defaults(void)
 	config.kick_client_active_bits = 50000;
 
 	config.debug_level = MSG_FATAL;
+
+	config.remote_disabled = false;
 }
 
 void usteer_update_time(void)

@@ -128,6 +128,7 @@ struct usteer_node_handler {
 
 struct usteer_config {
 	bool syslog;
+	bool remote_disabled;
 	uint32_t debug_level;
 
 	uint32_t sta_block_timeout;

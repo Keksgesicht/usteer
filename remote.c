@@ -306,32 +306,33 @@ interface_recv(struct uloop_fd *u, unsigned int events)
 		.msg_controllen = sizeof(cmsg_buf),
 	};
 	int len;
+	if(!config.remote_disabled){
+		do {
+			struct interface *iface;
 
-	do {
-		struct interface *iface;
-
-		len = recvmsg(u->fd, &msg, 0);
-		if (len < 0) {
-			switch (errno) {
-			case EAGAIN:
-				return;
-			case EINTR:
-				continue;
-			default:
-				perror("recvmsg");
-				uloop_fd_delete(u);
-				return;
+			len = recvmsg(u->fd, &msg, 0);
+			if (len < 0) {
+				switch (errno) {
+				case EAGAIN:
+					return;
+				case EINTR:
+					continue;
+				default:
+					perror("recvmsg");
+					uloop_fd_delete(u);
+					return;
+				}
 			}
-		}
 
-		iface = interface_find_by_ifindex(sin.sin6_scope_id);
-		if (!iface) {
-			MSG(DEBUG, "Received packet from unconfigured interface %d\n", sin.sin6_scope_id);
-			continue;
-		}
+			iface = interface_find_by_ifindex(sin.sin6_scope_id);
+			if (!iface) {
+				MSG(DEBUG, "Received packet from unconfigured interface %d\n", sin.sin6_scope_id);
+				continue;
+			}
 
-		interface_recv_msg(iface, &sin.sin6_addr, buf, len);
-	} while (1);
+			interface_recv_msg(iface, &sin.sin6_addr, buf, len);
+		} while (1);
+	}
 }
 
 static void
@@ -364,9 +365,10 @@ interface_send_msg(struct interface *iface, struct blob_attr *data)
 
 	iov.iov_base = data;
 	iov.iov_len = blob_pad_len(data);
-
-	if (sendmsg(remote_fd.fd, &m, 0) < 0)
-		perror("sendmsg");
+	if(!config.remote_disabled){
+		if (sendmsg(remote_fd.fd, &m, 0) < 0)
+			perror("sendmsg");
+	}
 }
 
 static void usteer_send_sta_info(struct sta_info *sta)
@@ -410,12 +412,13 @@ static void usteer_send_node(struct usteer_node *node, struct sta_info *sta)
 			 blob_len(node->script_data));
 
 	s = blob_nest_start(&buf, APMSG_NODE_STATIONS);
-
-	if (sta) {
-		usteer_send_sta_info(sta);
-	} else {
-		list_for_each_entry(sta, &node->sta_info, node_list)
+	if(!config.remote_disabled){
+		if (sta) {
 			usteer_send_sta_info(sta);
+		} else {
+			list_for_each_entry(sta, &node->sta_info, node_list)
+				usteer_send_sta_info(sta);
+		}
 	}
 
 	blob_nest_end(&buf, s);
