@@ -16,24 +16,13 @@
  *   Copyright (C) 2021 Nico Petermann <nico.petermann3@gmail.com>
  */
 
-struct BeaconReport {
-	usteer_node* BSSID;
-	sta_info* address;
-	uint8_t rcpi;
-	uint8_t rsni;
-	uint8_t opClass;
-	uint8_t channel;
-};
+#include <sys/types.h>
 
-struct BeaconRequest {
-	BeaconReport lastReport;
-	uint8_t fallback_mode;
-	uint64_t nextRequestTime;
-};
+#include <libubox/blobmsg_json.h>
+
+#include "hearing_map.h"
 
 int getChannelFromFreq(int freq) {
-	int channel = 0;
-	
 	/* see 802.11-2007 17.3.8.3.2 and Annex J */
 	if (freq == 2484)
 		return 14;
@@ -49,7 +38,7 @@ int getChannelFromFreq(int freq) {
 		return 0;
 }
 
-int getOPClassFromChannel(int channel){
+int getOPClassFromChannel(int channel) {
 	if (channel >= 36 ||
 		channel <= 48 ){
 
