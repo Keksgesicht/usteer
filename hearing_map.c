@@ -1,11 +1,19 @@
 
-
-struct BeaconData{
-    int opClass;
-    void* BSSID;
-    void* Adress;
-    void* RCPI;
+struct BeaconReport {
+	usteer_node* BSSID;
+	sta_info* address;
+	uint8_t rcpi;
+	uint8_t rsni;
+	uint8_t opClass;
+	uint8_t channel;
 };
+
+struct BeaconRequest {
+	BeaconReport lastReport;
+	uint8_t fallback_mode;
+	uint64_t nextRequestTime;
+};
+
 int getChannelFromFreq(int freq) {
 	int channel = 0;
 	
@@ -22,8 +30,8 @@ int getChannelFromFreq(int freq) {
 		return (freq - 56160) / 2160;
 	else
 		return 0;
-	
 }
+
 int getOPClassFromChannel(int channel){
 	if (channel >= 36 ||
 		channel <= 48 ){
@@ -49,5 +57,4 @@ int getOPClassFromChannel(int channel){
 	else{
 		return 0; // z.B channel 14 nicht in dokument
 	}
-	
 }
