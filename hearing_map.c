@@ -20,6 +20,7 @@
 
 #include <libubox/blobmsg_json.h>
 
+#include "node.h"
 #include "hearing_map.h"
 
 int getChannelFromFreq(int freq) {
@@ -63,4 +64,44 @@ int getOPClassFromChannel(int channel) {
 	else{
 		return 0; // z.B channel 14 nicht in dokument
 	}
+}
+
+enum {
+	BEACON_REP_ADDR,
+	BEACON_REP_OP_CLASS,
+	BEACON_REP_CHANNEL,
+	BEACON_REP_RCPI,
+	BEACON_REP_RSNI,
+	BEACON_REP_BSSID,
+	__BEACON_REP_MAX,
+};
+
+static const struct blobmsg_policy beacon_rep_policy[__BEACON_REP_MAX] = {
+	[BEACON_REP_BSSID] = {.name = "bssid", .type = BLOBMSG_TYPE_STRING},
+	[BEACON_REP_ADDR] = {.name = "address", .type = BLOBMSG_TYPE_STRING},
+	[BEACON_REP_OP_CLASS] = {.name = "op-class", .type = BLOBMSG_TYPE_INT16},
+	[BEACON_REP_CHANNEL] = {.name = "channel", .type = BLOBMSG_TYPE_INT16},
+	[BEACON_REP_RCPI] = {.name = "rcpi", .type = BLOBMSG_TYPE_INT16},
+	[BEACON_REP_RSNI] = {.name = "rsni", .type = BLOBMSG_TYPE_INT16},
+};
+
+void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg) {
+	struct blob_attr *tb[__BEACON_REP_MAX];
+	struct usteer_local_node *ln;
+
+	blobmsg_parse(beacon_rep_policy, __BEACON_REP_MAX, tb, blob_data(msg), blob_len(msg));
+	if(!tb[BEACON_REP_BSSID]   || !tb[BEACON_REP_ADDR] || !tb[BEACON_REP_OP_CLASS]
+	|| !tb[BEACON_REP_CHANNEL] || !tb[BEACON_REP_RCPI] || !tb[BEACON_REP_RSNI])
+		return;
+
+	char *bssid = blobmsg_get_string(tb[BEACON_REP_BSSID]);
+	char *address = blobmsg_get_string(tb[BEACON_REP_ADDR]);
+	uint16_t op_class = blobmsg_get_u16(tb[BEACON_REP_OP_CLASS]);
+	uint16_t channel = blobmsg_get_u16(tb[BEACON_REP_CHANNEL]);
+	uint16_t rcpi = blobmsg_get_u16(tb[BEACON_REP_RCPI]);
+	uint16_t rsni = blobmsg_get_u16(tb[BEACON_REP_RSNI]);
+	ln = container_of(obj, struct usteer_local_node, ev.obj);
+
+	MSG(DEBUG, "received beacon-report {op-class=%d, channel=%d, rcpi=%d, rsni=%d, bssid=%s} on %s from %s",
+		op_class, channel, rcpi, rsni, bssid, ln->iface, address);
 }

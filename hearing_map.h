@@ -39,4 +39,6 @@ struct beacon_request {
 int getChannelFromFreq(int freq);
 int getOPClassFromChannel(int channel);
 
+void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg);
+
 #endif
