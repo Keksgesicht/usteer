@@ -21,24 +21,11 @@
 
 #include "usteer.h"
 
-struct beacon_report {
-	struct usteer_node bssid;
-	struct sta_info address;
-	uint16_t rcpi;
-	uint16_t rsni;
-	uint16_t op_class;
-	uint16_t channel;
-};
-
-struct beacon_request {
-	struct beacon_report last_report;
-	uint8_t fallback_mode;
-	uint64_t nextRequestTime;
-};
-
 int getChannelFromFreq(int freq);
 int getOPClassFromChannel(int channel);
 
 void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg);
+
+char *usteer_node_get_mac(struct usteer_node *node);
 
 #endif

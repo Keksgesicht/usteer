@@ -17,11 +17,46 @@
  */
 
 #include <sys/types.h>
+#include <stdlib.h>
 
 #include <libubox/blobmsg_json.h>
+#include <libubox/kvlist.h>
 
 #include "node.h"
 #include "hearing_map.h"
+
+struct kvlist beacon_report_list;
+struct kvlist beacon_request_list;
+
+struct beacon_report {
+	struct usteer_node bssid;
+	struct sta_info address;
+	uint16_t rcpi;
+	uint16_t rsni;
+	uint16_t op_class;
+	uint16_t channel;
+};
+
+struct beacon_request {
+	struct usteer_local_node node;
+	struct beacon_report last_report;
+	uint8_t fallback_mode;
+	uint64_t nextRequestTime;
+	uint64_t lastReportTime;
+};
+
+char *usteer_node_get_mac(struct usteer_node *node) {
+	struct blobmsg_policy policy[3] = {
+			{ .type = BLOBMSG_TYPE_STRING },
+			{ .type = BLOBMSG_TYPE_STRING },
+			{ .type = BLOBMSG_TYPE_STRING },
+	};
+	struct blob_attr *tb[3];
+	blobmsg_parse_array(policy, ARRAY_SIZE(tb), tb, blobmsg_data(node->rrm_nr), blobmsg_data_len(node->rrm_nr));
+	if (!tb[0])
+		return "";
+	return blobmsg_get_string(tb[0]);
+}
 
 int getChannelFromFreq(int freq) {
 	/* see 802.11-2007 17.3.8.3.2 and Annex J */
@@ -104,4 +139,7 @@ void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg) 
 
 	MSG(DEBUG, "received beacon-report {op-class=%d, channel=%d, rcpi=%d, rsni=%d, bssid=%s} on %s from %s",
 		op_class, channel, rcpi, rsni, bssid, ln->iface, address);
+
+	if (strcmp(bssid, usteer_node_get_mac(&ln->node)) == 0)
+		MSG(DEBUG, "blubb");
 }
