@@ -4,26 +4,27 @@ struct BeaconData{
     int opClass;
     void* BSSID;
     void* Adress;
-    void* BSSID
+    void* RCPI;
 };
-int getOpClassFromFreq(int freq) {
+int getChannelFromFreq(int freq) {
 	int channel = 0;
 	
 	/* see 802.11-2007 17.3.8.3.2 and Annex J */
 	if (freq == 2484)
-		channel = 14;
+		return 14;
 	else if (freq < 2484)
-		channel = (freq - 2407) / 5;
+		return (freq - 2407) / 5;
 	else if (freq >= 4910 && freq <= 4980)
-		channel = (freq - 4000) / 5;
+		return (freq - 4000) / 5;
 	else if (freq <= 45000) /* DMG band lower limit */
-		channel = (freq - 5000) / 5;
+		return (freq - 5000) / 5;
 	else if (freq >= 58320 && freq <= 64800)
-		channel = (freq - 56160) / 2160;
+		return (freq - 56160) / 2160;
 	else
-		channel = 0;
+		return 0;
 	
-
+}
+int getOPClassFromChannel(int channel){
 	if (channel == 36 |
 		channel == 40 |
 		channel == 44 |
