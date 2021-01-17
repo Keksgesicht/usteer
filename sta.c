@@ -18,6 +18,7 @@
  */
 
 #include "usteer.h"
+#include "hearing_map.h"
 
 static int
 avl_macaddr_cmp(const void *k1, const void *k2, void *ptr)
@@ -47,6 +48,7 @@ usteer_sta_info_del(struct sta_info *si)
 	    MAC_ADDR_DATA(sta->addr), usteer_node_name(si->node));
 
 	usteer_timeout_cancel(&tq, &si->timeout);
+	usteer_beacon_cleanup(si, 0);
 	list_del(&si->list);
 	list_del(&si->node_list);
 	free(si->active_bytes.data);
