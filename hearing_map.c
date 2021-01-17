@@ -78,23 +78,23 @@ int getChannelFromFreq(int freq) {
 }
 
 int getOPClassFromChannel(int channel) {
-	if (channel >= 36 ||
+	if (channel >= 36 &&
 		channel <= 48 ){
 
 		return 115; // 1 in nicht global
 	}
-	else if(channel >= 52 ||
+	else if(channel >= 52 &&
 			channel <= 64 ){
 
 		return 118; // 2
 	}
 	else if(
-			channel >= 100 ||
+			channel >= 100 &&
 			channel <= 140 ){
 
 		return 121; // 3
 	}
-	else if(channel >= 1  ||
+	else if(channel >= 1  &&
 			channel <= 13 ){
 
 		return 81; // 4
