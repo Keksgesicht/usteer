@@ -24,6 +24,7 @@
 int getChannelFromFreq(int freq);
 int getOPClassFromChannel(int channel);
 
+void usteer_beacon_cleanup(struct sta_info *si, uint64_t time);
 void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg);
 
 char *usteer_node_get_mac(struct usteer_node *node);

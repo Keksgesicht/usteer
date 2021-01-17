@@ -56,6 +56,7 @@ struct usteer_local_node;
 struct usteer_node {
 	struct avl_node avl;
 	struct list_head sta_info;
+	struct list_head beacon;
 
 	enum usteer_node_type type;
 
@@ -189,6 +190,7 @@ struct sta_active_bytes {
 struct sta_info {
 	struct list_head list;
 	struct list_head node_list;
+	struct list_head beacon;
 
 	struct usteer_node *node;
 	struct sta *sta;

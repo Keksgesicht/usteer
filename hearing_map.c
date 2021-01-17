@@ -23,25 +23,26 @@
 #endif
 
 #include <libubox/blobmsg_json.h>
-#include <libubox/kvlist.h>
 
 #include "node.h"
 #include "hearing_map.h"
 
-struct kvlist beacon_report_list;
-struct kvlist beacon_request_list;
-
 struct beacon_report {
+	struct list_head node_list;
+	struct list_head sta_list;
 	struct usteer_node *bssid;
 	struct sta_info *address;
 	uint16_t rcpi;
 	uint16_t rsni;
 	uint16_t op_class;
 	uint16_t channel;
+	uint16_t duration;
+	uint64_t start_time;
 };
 
 struct beacon_request {
 	struct usteer_local_node *node;
+
 	struct beacon_report last_report;
 	uint8_t fallback_mode;
 	uint64_t nextRequestTime;
@@ -49,9 +50,9 @@ struct beacon_request {
 
 char *usteer_node_get_mac(struct usteer_node *node) {
 	struct blobmsg_policy policy[3] = {
-			{ .type = BLOBMSG_TYPE_STRING },
-			{ .type = BLOBMSG_TYPE_STRING },
-			{ .type = BLOBMSG_TYPE_STRING },
+		{ .type = BLOBMSG_TYPE_STRING },
+		{ .type = BLOBMSG_TYPE_STRING },
+		{ .type = BLOBMSG_TYPE_STRING },
 	};
 	struct blob_attr *tb[3];
 	blobmsg_parse_array(policy, ARRAY_SIZE(tb), tb, blobmsg_data(node->rrm_nr), blobmsg_data_len(node->rrm_nr));
@@ -110,6 +111,8 @@ enum {
 	BEACON_REP_RCPI,
 	BEACON_REP_RSNI,
 	BEACON_REP_BSSID,
+	BEACON_REP_DURATION,
+	BEACON_REP_START,
 	__BEACON_REP_MAX,
 };
 
@@ -120,6 +123,8 @@ static const struct blobmsg_policy beacon_rep_policy[__BEACON_REP_MAX] = {
 	[BEACON_REP_CHANNEL] = {.name = "channel", .type = BLOBMSG_TYPE_INT16},
 	[BEACON_REP_RCPI] = {.name = "rcpi", .type = BLOBMSG_TYPE_INT16},
 	[BEACON_REP_RSNI] = {.name = "rsni", .type = BLOBMSG_TYPE_INT16},
+	[BEACON_REP_DURATION] = {.name = "duration", .type = BLOBMSG_TYPE_INT16},
+	[BEACON_REP_START] = {.name = "start-time", .type = BLOBMSG_TYPE_INT64},
 };
 
 static inline struct usteer_node*
@@ -138,34 +143,59 @@ get_usteer_node_from_bssid(char* bssid)
 	return NULL;
 }
 
+static void usteer_beacon_del(struct beacon_report *br) {
+	MSG(DEBUG, "removing old beacon-report {op-class=%d, channel=%d, rcpi=%d, rsni=%d, start=%llu}",
+		br->op_class, br->channel, br->rcpi, br->rsni, br->start_time);
+
+	if (br->bssid)
+		list_del(&br->node_list);
+	list_del(&br->sta_list);
+	free(br);
+}
+
+void usteer_beacon_cleanup(struct sta_info *si, uint64_t time) {
+	struct beacon_report *br, *tmp;
+	list_for_each_entry_safe(br, tmp, &si->beacon, sta_list)
+		if (br->start_time != time)
+			usteer_beacon_del(br);
+}
+
 void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg) {
 	struct usteer_local_node *ln = container_of(obj, struct usteer_local_node, ev.obj);
 	struct usteer_node *node = &ln->node;
 	struct blob_attr *tb[__BEACON_REP_MAX];
-	struct beacon_report br;
+	struct beacon_report *br;
 	struct sta_info *si;
 	struct sta *sta;
 
 	blobmsg_parse(beacon_rep_policy, __BEACON_REP_MAX, tb, blob_data(msg), blob_len(msg));
-	if(!tb[BEACON_REP_BSSID]   || !tb[BEACON_REP_ADDR] || !tb[BEACON_REP_OP_CLASS]
-	|| !tb[BEACON_REP_CHANNEL] || !tb[BEACON_REP_RCPI] || !tb[BEACON_REP_RSNI])
+	if(!tb[BEACON_REP_BSSID]   || !tb[BEACON_REP_ADDR])
 		return;
+	br = calloc(1, sizeof(struct beacon_report));
 
 	char *bssid = blobmsg_get_string(tb[BEACON_REP_BSSID]);
 	char *address = blobmsg_get_string(tb[BEACON_REP_ADDR]);
 	uint8_t *addr = (uint8_t *) ether_aton(address);
-	br.rcpi = blobmsg_get_u16(tb[BEACON_REP_RCPI]);
-	br.rsni = blobmsg_get_u16(tb[BEACON_REP_RSNI]);
-	br.op_class = blobmsg_get_u16(tb[BEACON_REP_OP_CLASS]);
-	br.channel = blobmsg_get_u16(tb[BEACON_REP_CHANNEL]);
+	br->rcpi = blobmsg_get_u16(tb[BEACON_REP_RCPI]);
+	br->rsni = blobmsg_get_u16(tb[BEACON_REP_RSNI]);
+	br->op_class = blobmsg_get_u16(tb[BEACON_REP_OP_CLASS]);
+	br->channel = blobmsg_get_u16(tb[BEACON_REP_CHANNEL]);
+	br->duration = blobmsg_get_u16(tb[BEACON_REP_DURATION]);
+	br->start_time = blobmsg_get_u64(tb[BEACON_REP_START]);
 
 	sta = usteer_sta_get(addr, false);
+	if(!sta) return;
 	si = usteer_sta_info_get(sta, node, NULL);
-	br.address = si;
-	br.bssid = get_usteer_node_from_bssid(bssid);
+	if (!si) return;
+	br->address = si;
+	br->bssid = get_usteer_node_from_bssid(bssid);
 
-	MSG(DEBUG, "received beacon-report {op-class=%d, channel=%d, rcpi=%d, rsni=%d, bssid=%s} on %s from %s",
-		br.op_class, br.channel, br.rcpi, br.rsni, bssid, ln->iface, address);
-	if (br.bssid)
-		MSG(DEBUG, "bssid=%s is %s node %p", bssid, br.bssid->type ? "remote" : "local", br.bssid);
+	MSG(DEBUG, "received beacon-report {op-class=%d, channel=%d, rcpi=%d, rsni=%d, start=%llu, bssid=%s} on %s from %s",
+		br->op_class, br->channel, br->rcpi, br->rsni, br->start_time, bssid, ln->iface, address);
+	list_add(&br->sta_list, &si->beacon);
+	if (br->bssid) {
+		MSG(DEBUG, "bssid=%s is %s node %p", bssid, br->bssid->type ? "remote" : "local", br->bssid);
+		list_add(&br->node_list, &br->bssid->beacon);
+	}
+	usteer_beacon_cleanup(si, br->start_time);
 }

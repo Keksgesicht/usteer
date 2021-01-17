@@ -105,6 +105,7 @@ usteer_sta_info_get(struct sta *sta, struct usteer_node *node, bool *create)
 	si->sta = sta;
 	list_add(&si->list, &sta->nodes);
 	list_add(&si->node_list, &node->sta_info);
+	INIT_LIST_HEAD(&si->beacon);
 	si->created = current_time;
 	*create = true;
 
