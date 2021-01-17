@@ -49,7 +49,6 @@ usteer_sta_info_del(struct sta_info *si)
 	usteer_timeout_cancel(&tq, &si->timeout);
 	list_del(&si->list);
 	list_del(&si->node_list);
-	free(si->active_bytes.data);
 	free(si);
 
 	if (list_empty(&sta->nodes))
