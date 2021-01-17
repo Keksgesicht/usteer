@@ -25,28 +25,8 @@
 #include <libubox/blobmsg_json.h>
 
 #include "node.h"
+#include "usteer.h"
 #include "hearing_map.h"
-
-struct beacon_report {
-	struct list_head node_list;
-	struct list_head sta_list;
-	struct usteer_node *bssid;
-	struct sta_info *address;
-	uint16_t rcpi;
-	uint16_t rsni;
-	uint16_t op_class;
-	uint16_t channel;
-	uint16_t duration;
-	uint64_t start_time;
-};
-
-struct beacon_request {
-	struct usteer_local_node *node;
-
-	struct beacon_report last_report;
-	uint8_t fallback_mode;
-	uint64_t nextRequestTime;
-};
 
 char *usteer_node_get_mac(struct usteer_node *node) {
 	struct blobmsg_policy policy[3] = {
@@ -144,9 +124,6 @@ get_usteer_node_from_bssid(char* bssid)
 }
 
 static void usteer_beacon_del(struct beacon_report *br) {
-	MSG(DEBUG, "removing old beacon-report {op-class=%d, channel=%d, rcpi=%d, rsni=%d, start=%llu}",
-		br->op_class, br->channel, br->rcpi, br->rsni, br->start_time);
-
 	if (br->bssid)
 		list_del(&br->node_list);
 	list_del(&br->sta_list);
@@ -169,7 +146,7 @@ void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg) 
 	struct sta *sta;
 
 	blobmsg_parse(beacon_rep_policy, __BEACON_REP_MAX, tb, blob_data(msg), blob_len(msg));
-	if(!tb[BEACON_REP_BSSID]   || !tb[BEACON_REP_ADDR])
+	if(!tb[BEACON_REP_BSSID] || !tb[BEACON_REP_ADDR])
 		return;
 	br = calloc(1, sizeof(struct beacon_report));
 

@@ -19,7 +19,30 @@
 #ifndef __APMGR_HEARING_MAP_H
 #define __APMGR_HEARING_MAP_H
 
+#include <sys/types.h>
+
+#include "node.h"
 #include "usteer.h"
+
+struct beacon_report {
+	struct list_head node_list;
+	struct list_head sta_list;
+	struct usteer_node *bssid;
+	struct sta_info *address;
+	uint16_t rcpi;
+	uint16_t rsni;
+	uint16_t op_class;
+	uint16_t channel;
+	uint16_t duration;
+	uint64_t start_time;
+};
+
+struct beacon_request {
+	struct usteer_local_node *node;
+	struct beacon_report last_report;
+	uint8_t fallback_mode;
+	uint64_t nextRequestTime;
+};
 
 int getChannelFromFreq(int freq);
 int getOPClassFromChannel(int channel);
