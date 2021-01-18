@@ -208,7 +208,6 @@ interface_get_node(const char *addr, unsigned long id, const char *name)
 	node->node.avl.key = buf;
 	node->name = buf + addr_len + 1;
 	INIT_LIST_HEAD(&node->node.sta_info);
-	INIT_LIST_HEAD(&node->node.beacon);
 
 	avl_insert(&remote_nodes, &node->avl);
 

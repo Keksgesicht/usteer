@@ -124,8 +124,6 @@ get_usteer_node_from_bssid(char* bssid)
 }
 
 static void usteer_beacon_del(struct beacon_report *br) {
-	if (br->bssid)
-		list_del(&br->node_list);
 	list_del(&br->sta_list);
 	free(br);
 }
@@ -148,11 +146,20 @@ void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg) 
 	blobmsg_parse(beacon_rep_policy, __BEACON_REP_MAX, tb, blob_data(msg), blob_len(msg));
 	if(!tb[BEACON_REP_BSSID] || !tb[BEACON_REP_ADDR])
 		return;
-	br = calloc(1, sizeof(struct beacon_report));
+	br = malloc(sizeof(struct beacon_report));
+
+	char *address = blobmsg_get_string(tb[BEACON_REP_ADDR]);
+	uint8_t *addr_sta = (uint8_t *) ether_aton(address);
+	sta = usteer_sta_get(addr_sta, false);
+	if(!sta) return;
+	si = usteer_sta_info_get(sta, node, NULL);
+	if (!si) return;
+	br->address = si;
 
 	char *bssid = blobmsg_get_string(tb[BEACON_REP_BSSID]);
-	char *address = blobmsg_get_string(tb[BEACON_REP_ADDR]);
-	uint8_t *addr = (uint8_t *) ether_aton(address);
+	uint8_t *addr_node = (uint8_t *) ether_aton(bssid);
+	memcpy(br->bssid, addr_node, sizeof(br->bssid));
+
 	br->rcpi = blobmsg_get_u16(tb[BEACON_REP_RCPI]);
 	br->rsni = blobmsg_get_u16(tb[BEACON_REP_RSNI]);
 	br->op_class = blobmsg_get_u16(tb[BEACON_REP_OP_CLASS]);
@@ -160,19 +167,8 @@ void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg) 
 	br->duration = blobmsg_get_u16(tb[BEACON_REP_DURATION]);
 	br->start_time = blobmsg_get_u64(tb[BEACON_REP_START]);
 
-	sta = usteer_sta_get(addr, false);
-	if(!sta) return;
-	si = usteer_sta_info_get(sta, node, NULL);
-	if (!si) return;
-	br->address = si;
-	br->bssid = get_usteer_node_from_bssid(bssid);
-
 	MSG(DEBUG, "received beacon-report {op-class=%d, channel=%d, rcpi=%d, rsni=%d, start=%llu, bssid=%s} on %s from %s",
 		br->op_class, br->channel, br->rcpi, br->rsni, br->start_time, bssid, ln->iface, address);
 	list_add(&br->sta_list, &si->beacon);
-	if (br->bssid) {
-		MSG(DEBUG, "bssid=%s is %s node %p", bssid, br->bssid->type ? "remote" : "local", br->bssid);
-		list_add(&br->node_list, &br->bssid->beacon);
-	}
 	usteer_beacon_cleanup(si, br->start_time);
 }

@@ -432,7 +432,6 @@ usteer_get_node(struct ubus_context *ctx, const char *name)
 	avl_insert(&local_nodes, &node->avl);
 	uloop_timeout_set(&ln->update, 1);
 	INIT_LIST_HEAD(&node->sta_info);
-	INIT_LIST_HEAD(&node->beacon);
 
 	return ln;
 }

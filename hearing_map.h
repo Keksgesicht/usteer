@@ -25,10 +25,9 @@
 #include "usteer.h"
 
 struct beacon_report {
-	struct list_head node_list;
 	struct list_head sta_list;
-	struct usteer_node *bssid;
 	struct sta_info *address;
+	uint8_t bssid[6];
 	uint16_t rcpi;
 	uint16_t rsni;
 	uint16_t op_class;
