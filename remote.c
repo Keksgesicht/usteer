@@ -180,6 +180,7 @@ interface_add_station(struct usteer_remote_node *node, struct blob_attr *data)
 static void
 remote_node_free(struct usteer_remote_node *node)
 {
+	avl_delete(&beacon_nodes, &node->node.beacon);
 	avl_delete(&remote_nodes, &node->avl);
 	usteer_sta_node_cleanup(&node->node);
 	free(node);
@@ -238,6 +239,10 @@ interface_add_node(struct interface *iface, const char *addr, unsigned long id, 
 	snprintf(node->node.ssid, sizeof(node->node.ssid), "%s", msg.ssid);
 	usteer_node_set_blob(&node->node.rrm_nr, msg.rrm_nr);
 	usteer_node_set_blob(&node->node.script_data, msg.script_data);
+
+	snprintf(node->node.mac, sizeof(node->node.mac), "%s", msg.mac);
+	node->node.beacon.key = &node->node.mac;
+	avl_insert(&beacon_nodes, &node->node.beacon);
 
 	blob_for_each_attr(cur, msg.stations, rem)
 		interface_add_station(node, cur);
@@ -393,6 +398,7 @@ static void usteer_send_node(struct usteer_node *node, struct sta_info *sta)
 
 	blob_put_string(&buf, APMSG_NODE_NAME, usteer_node_name(node));
 	blob_put_string(&buf, APMSG_NODE_SSID, node->ssid);
+	blob_put_string(&buf, APMSG_NODE_MAC, node->mac);
 	blob_put_int32(&buf, APMSG_NODE_FREQ, node->freq);
 	blob_put_int32(&buf, APMSG_NODE_NOISE, node->noise);
 	blob_put_int32(&buf, APMSG_NODE_LOAD, node->load);

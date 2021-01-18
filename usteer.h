@@ -55,6 +55,7 @@ struct usteer_local_node;
 
 struct usteer_node {
 	struct avl_node avl;
+	struct avl_node beacon;
 	struct list_head sta_info;
 
 	enum usteer_node_type type;
@@ -62,6 +63,7 @@ struct usteer_node {
 	struct blob_attr *rrm_nr;
 	struct blob_attr *script_data;
 	char ssid[33];
+	char mac[18];
 
 	int freq;
 	int noise;

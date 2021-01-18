@@ -22,23 +22,21 @@
 #include <netinet/ether.h>
 #endif
 
+#include <libubox/avl-cmp.h>
 #include <libubox/blobmsg_json.h>
 
 #include "node.h"
 #include "usteer.h"
 #include "hearing_map.h"
 
-char *usteer_node_get_mac(struct usteer_node *node) {
-	struct blobmsg_policy policy[3] = {
-		{ .type = BLOBMSG_TYPE_STRING },
-		{ .type = BLOBMSG_TYPE_STRING },
-		{ .type = BLOBMSG_TYPE_STRING },
-	};
-	struct blob_attr *tb[3];
-	blobmsg_parse_array(policy, ARRAY_SIZE(tb), tb, blobmsg_data(node->rrm_nr), blobmsg_data_len(node->rrm_nr));
-	if (!tb[0])
-		return "";
-	return blobmsg_get_string(tb[0]);
+AVL_TREE(beacon_nodes, avl_strcmp, false, NULL);
+
+static struct usteer_node*
+get_usteer_node_from_bssid(char *bssid)
+{
+	struct usteer_node *node;
+	node = avl_find_element(&beacon_nodes, bssid, node, beacon);
+	return node;
 }
 
 int getChannelFromFreq(int freq) {
@@ -107,22 +105,6 @@ static const struct blobmsg_policy beacon_rep_policy[__BEACON_REP_MAX] = {
 	[BEACON_REP_START] = {.name = "start-time", .type = BLOBMSG_TYPE_INT64},
 };
 
-static inline struct usteer_node*
-get_usteer_node_from_bssid(char* bssid)
-{
-	struct usteer_node *node;
-	avl_for_each_element(&local_nodes, node, avl) {
-		if (strcmp(bssid, usteer_node_get_mac(node)) == 0)
-			return node;
-	}
-	struct usteer_remote_node *rn;
-	avl_for_each_element(&remote_nodes, rn, avl) {
-		if (strcmp(bssid, usteer_node_get_mac(&rn->node)) == 0)
-			return &rn->node;
-	}
-	return NULL;
-}
-
 static void usteer_beacon_del(struct beacon_report *br) {
 	list_del(&br->sta_list);
 	free(br);
@@ -157,8 +139,7 @@ void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg) 
 	br->address = si;
 
 	char *bssid = blobmsg_get_string(tb[BEACON_REP_BSSID]);
-	uint8_t *addr_node = (uint8_t *) ether_aton(bssid);
-	memcpy(br->bssid, addr_node, sizeof(br->bssid));
+	snprintf(br->bssid, sizeof(br->bssid), "%s", bssid);
 
 	br->rcpi = blobmsg_get_u16(tb[BEACON_REP_RCPI]);
 	br->rsni = blobmsg_get_u16(tb[BEACON_REP_RSNI]);
@@ -171,4 +152,8 @@ void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg) 
 		br->op_class, br->channel, br->rcpi, br->rsni, br->start_time, bssid, ln->iface, address);
 	list_add(&br->sta_list, &si->beacon);
 	usteer_beacon_cleanup(si, br->start_time);
+
+	node = get_usteer_node_from_bssid(br->bssid);
+	if (node)
+		MSG(DEBUG, "bssid=%s is %s node %p", bssid, node->type ? "remote" : "local", node);
 }
