@@ -139,8 +139,7 @@ usteer_handle_event_probe(struct ubus_object *obj, const char *method, struct bl
 	MSG(DEBUG, "received %s event from %s, signal=%d, freq=%d, handled:%s\n",
 	    method, addr_str, signal, freq, ret ? "true" : "false");
 
-	return 0; // stop suppressing probe messages
-	// return ret ? 0 : 17 /* WLAN_STATUS_AP_UNABLE_TO_HANDLE_NEW_STA */;
+	return ret ? 0 : 17 /* WLAN_STATUS_AP_UNABLE_TO_HANDLE_NEW_STA */;
 }
 
 static int
