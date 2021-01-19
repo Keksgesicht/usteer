@@ -29,10 +29,15 @@
 #include "usteer.h"
 #include "hearing_map.h"
 
-AVL_TREE(beacon_nodes, avl_strcmp, false, NULL);
+static int
+avl_macaddr_cmp(const void *k1, const void *k2, void *ptr)
+{
+	return memcmp(k1, k2, 6);
+}
+AVL_TREE(beacon_nodes, avl_macaddr_cmp, false, NULL);
 
 static struct usteer_node*
-get_usteer_node_from_bssid(char *bssid)
+get_usteer_node_from_bssid(const uint8_t *bssid)
 {
 	struct usteer_node *node;
 	node = avl_find_element(&beacon_nodes, bssid, node, beacon);
@@ -139,7 +144,8 @@ void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg) 
 	br->address = si;
 
 	char *bssid = blobmsg_get_string(tb[BEACON_REP_BSSID]);
-	snprintf(br->bssid, sizeof(br->bssid), "%s", bssid);
+	uint8_t *addr = (uint8_t *) ether_aton(bssid);
+	memcpy(br->bssid, addr, sizeof(br->bssid));
 
 	br->rcpi = blobmsg_get_u16(tb[BEACON_REP_RCPI]);
 	br->rsni = blobmsg_get_u16(tb[BEACON_REP_RSNI]);

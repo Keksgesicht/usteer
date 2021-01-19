@@ -27,7 +27,7 @@
 struct beacon_report {
 	struct list_head sta_list;
 	struct sta_info *address;
-	char bssid[18];
+	uint8_t bssid[6];
 	uint16_t rcpi;
 	uint16_t rsni;
 	uint16_t op_class;
