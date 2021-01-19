@@ -55,7 +55,6 @@ struct usteer_local_node;
 
 struct usteer_node {
 	struct avl_node avl;
-	struct avl_node beacon;
 	struct list_head sta_info;
 
 	enum usteer_node_type type;

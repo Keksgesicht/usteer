@@ -57,7 +57,6 @@ usteer_free_node(struct ubus_context *ctx, struct usteer_local_node *ln)
 		h->free_node(&ln->node);
 	}
 
-	avl_delete(&beacon_nodes, &ln->node.beacon);
 	usteer_local_node_state_reset(ln);
 	usteer_sta_node_cleanup(&ln->node);
 	uloop_timeout_cancel(&ln->req_timer);
@@ -317,8 +316,6 @@ usteer_local_node_rrm_nr_cb(struct ubus_request *req, int type, struct blob_attr
 	if (ba[0]) {
 		uint8_t *addr = (uint8_t *) ether_aton(blobmsg_get_string(ba[0]));
 		memcpy(ln->node.mac, addr, sizeof(ln->node.mac));
-		ln->node.beacon.key = ln->node.mac;
-		avl_insert(&beacon_nodes, &ln->node.beacon);
 	}
 }
 

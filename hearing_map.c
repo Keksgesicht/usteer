@@ -29,19 +29,20 @@
 #include "usteer.h"
 #include "hearing_map.h"
 
-static int
-avl_macaddr_cmp(const void *k1, const void *k2, void *ptr)
-{
-	return memcmp(k1, k2, 6);
-}
-AVL_TREE(beacon_nodes, avl_macaddr_cmp, false, NULL);
-
 static struct usteer_node*
-get_usteer_node_from_bssid(const uint8_t *bssid)
+get_usteer_node_from_bssid(uint8_t *bssid)
 {
 	struct usteer_node *node;
-	node = avl_find_element(&beacon_nodes, bssid, node, beacon);
-	return node;
+	avl_for_each_element(&local_nodes, node, avl) {
+		if (memcmp(&node->mac, bssid, 6) == 0)
+			return node;
+	}
+	struct usteer_remote_node *rn;
+	avl_for_each_element(&remote_nodes, rn, avl) {
+		if (memcmp(&rn->node.mac, bssid, 6) == 0)
+			return &rn->node;
+	}
+	return NULL;
 }
 
 int getChannelFromFreq(int freq) {

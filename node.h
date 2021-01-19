@@ -75,6 +75,5 @@ struct usteer_remote_node {
 
 extern struct avl_tree local_nodes;
 extern struct avl_tree remote_nodes;
-extern struct avl_tree beacon_nodes;
 
 #endif
