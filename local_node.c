@@ -312,7 +312,7 @@ usteer_local_node_rrm_nr_cb(struct ubus_request *req, int type, struct blob_attr
 			{ .type = BLOBMSG_TYPE_STRING },
 	};
 	struct blob_attr *ba[3];
-	blobmsg_parse_array(policy_mac, ARRAY_SIZE(ba), ba, tb, blobmsg_data_len(tb));
+	blobmsg_parse_array(policy_mac, ARRAY_SIZE(ba), ba, blobmsg_data(ln->node.rrm_nr), blobmsg_data_len(ln->node.rrm_nr));
 	if (ba[0]) {
 		uint8_t *addr = (uint8_t *) ether_aton(blobmsg_get_string(ba[0]));
 		memcpy(ln->node.mac, addr, sizeof(ln->node.mac));
