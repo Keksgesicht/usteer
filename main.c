@@ -98,6 +98,8 @@ void usteer_init_defaults(void)
 	config.debug_level = MSG_FATAL;
 
 	config.remote_disabled = false;
+
+	config.beacon_request_frequency = 30 * 1000;
 }
 
 void usteer_update_time(void)

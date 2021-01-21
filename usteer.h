@@ -159,6 +159,8 @@ struct usteer_config {
 	uint32_t kick_client_active_bits;
 
 	const char *node_up_script;
+
+	uint32_t beacon_request_frequency;
 };
 
 struct sta_info_stats {
