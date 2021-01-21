@@ -60,6 +60,7 @@ int sendBeaconReport(struct sta_info * si){
 	blobmsg_add_u32(&b, "channel", channel);
 	blobmsg_add_u32(&b, "op_class", opClass);
 	ubus_invoke(ubus_ctx, ln->obj_id, "rrm_beacon_req", b.head, NULL,0 , 100);
+	return 0;
 }
 
 int getChannelFromFreq(int freq) {
