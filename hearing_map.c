@@ -14,6 +14,7 @@
  *
  *   Copyright (C) 2021 Jan Braun <jan-kai@braun-bs.de>
  *   Copyright (C) 2021 Nico Petermann <nico.petermann3@gmail.com>
+ * 	 Copyright (C) 2021 Tomas Duchac <tomasduchac@protonmail.ch>
  */
 
 #include <sys/types.h>
@@ -29,9 +30,9 @@
 #include "usteer.h"
 #include "hearing_map.h"
 
-static struct usteer_node*
-get_usteer_node_from_bssid(uint8_t *bssid)
-{
+static struct blob_buf b;
+
+static struct usteer_node* get_usteer_node_from_bssid(uint8_t *bssid){
 	struct usteer_node *node;
 	avl_for_each_element(&local_nodes, node, avl) {
 		if (memcmp(&node->mac, bssid, 6) == 0)
@@ -43,6 +44,22 @@ get_usteer_node_from_bssid(uint8_t *bssid)
 			return &rn->node;
 	}
 	return NULL;
+}
+
+int sendBeaconReport(struct sta_info * si){
+	struct usteer_local_node *ln = container_of(si->node, struct usteer_local_node, node);
+	struct usteer_node *un = &ln->node;
+	int freq = un->freq;
+	int channel = getChannelFromFreq(freq);
+	int opClass = getOPClassFromChannel(channel);
+	
+	blob_buf_init(&b, 0);
+	blobmsg_printf(&b, "addr", MAC_ADDR_FMT, MAC_ADDR_DATA(si->sta->addr));
+	blobmsg_add_u32(&b, "mode", 1);
+	blobmsg_add_u32(&b, "duration", 65535);
+	blobmsg_add_u32(&b, "channel", channel);
+	blobmsg_add_u32(&b, "op_class", opClass);
+	ubus_invoke(ubus_ctx, ln->obj_id, "rrm_beacon_req", b.head, NULL,0 , 100);
 }
 
 int getChannelFromFreq(int freq) {
