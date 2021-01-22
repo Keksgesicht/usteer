@@ -45,6 +45,24 @@ get_usteer_node_from_bssid(uint8_t *bssid)
 	return NULL;
 }
 
+void usteer_hearing_map_by_client(struct blob_buf *bm, struct sta_info *si) {
+	struct beacon_report *br;
+	void *_hm, *_nr;
+
+	_hm = blobmsg_open_table(bm, "hearing_map");
+	list_for_each_entry(br, &si->beacon, sta_list) {
+		_nr = blobmsg_open_table(bm, ether_ntoa((struct ether_addr *) br->bssid));
+		blobmsg_add_u16(bm, "rcpi", br->rcpi);
+		blobmsg_add_u16(bm, "rsni", br->rsni);
+		blobmsg_add_u16(bm, "op_class", br->op_class);
+		blobmsg_add_u16(bm, "channel", br->channel);
+		blobmsg_add_u16(bm, "duration", br->duration);
+		blobmsg_add_u64(bm, "start_time", br->start_time);
+		blobmsg_close_table(bm, _nr);
+	}
+	blobmsg_close_table(bm, _hm);
+}
+
 int getChannelFromFreq(int freq) {
 	/* see 802.11-2007 17.3.8.3.2 and Annex J */
 	if (freq == 2484)
