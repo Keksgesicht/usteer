@@ -62,6 +62,7 @@ usteer_sta_node_cleanup(struct usteer_node *node)
 {
 	struct sta_info *si, *tmp;
 
+	avl_delete(&beacon_nodes, &node->beacon);
 	free(node->rrm_nr);
 	node->rrm_nr = NULL;
 

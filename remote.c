@@ -245,6 +245,8 @@ interface_add_node(struct interface *iface, const char *addr, unsigned long id, 
 
 	uint8_t *mac = (uint8_t *) ether_aton(msg.mac);
 	memcpy(node->node.mac, mac, sizeof(node->node.mac));
+	node->node.beacon.key = node->node.mac;
+	avl_insert(&beacon_nodes, &node->node.beacon);
 
 	blob_for_each_attr(cur, msg.stations, rem)
 		interface_add_station(node, cur);
