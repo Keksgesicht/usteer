@@ -19,6 +19,10 @@
  */
 
 #ifndef __APMGR_HEARING_MAP_H
+
+#ifndef __APMGR_HEARING_MAP_H
+
+#ifndef __APMGR_HEARING_MAP_H
 #define __APMGR_HEARING_MAP_H
 
 #include <sys/types.h>

@@ -533,6 +533,9 @@ usteer_register_events(struct ubus_context *ctx)
 	ubus_register_event_handler(ctx, &handler, "ubus.object.add");
 }
 
+
+void add_oneshot_timer(struct uloop_timeout *t, unsigned int delay);
+
 /* Add to uloop */
  void add_oneshot_timer(struct uloop_timeout *t, unsigned int delay)
 {
@@ -545,7 +548,7 @@ usteer_beacon_request_sender(struct uloop_timeout *t)
 {
 	/* Send beacon requests here */
 	MSG(DEBUG, "Sent Request");
-	add_oneshot_timer(&t, 1000);
+	add_oneshot_timer(t, 1000);
 }
 
 struct uloop_timeout beacon_sender = {
