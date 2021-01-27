@@ -14,6 +14,8 @@
  *
  *   Copyright (C) 2021 Jan Braun <jan-kai@braun-bs.de>
  *   Copyright (C) 2021 Nico Petermann <nico.petermann3@gmail.com>
+ *   Copyright (C) 2021 Tomas Duchac <tomasduchac@protonmail.ch>
+ * 	 Copyright (C) 2021 Philip Jonas Franz <R41Da@gmx.de>
  */
 
 #ifndef __APMGR_HEARING_MAP_H

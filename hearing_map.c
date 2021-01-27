@@ -56,7 +56,7 @@ int sendBeaconReport(struct sta_info * si){
 	blob_buf_init(&b, 0);
 	blobmsg_printf(&b, "addr", MAC_ADDR_FMT, MAC_ADDR_DATA(si->sta->addr));
 	blobmsg_add_u32(&b, "mode", 1);
-	blobmsg_add_u32(&b, "duration", 65535);
+	blobmsg_add_u32(&b, "duration", 10);
 	blobmsg_add_u32(&b, "channel", channel);
 	blobmsg_add_u32(&b, "op_class", opClass);
 	ubus_invoke(ubus_ctx, ln->obj_id, "rrm_beacon_req", b.head, NULL,0 , 100);

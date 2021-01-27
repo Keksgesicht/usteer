@@ -533,6 +533,25 @@ usteer_register_events(struct ubus_context *ctx)
 	ubus_register_event_handler(ctx, &handler, "ubus.object.add");
 }
 
+/* Add to uloop */
+ void add_oneshot_timer(struct uloop_timeout *t, unsigned int delay)
+{
+	uloop_timeout_set(t, delay);
+	uloop_timeout_add(t);
+}
+
+static void
+usteer_beacon_request_sender(struct uloop_timeout *t)
+{
+	/* Send beacon requests here */
+	MSG(DEBUG, "Sent Request");
+	add_oneshot_timer(&t, 1000);
+}
+
+struct uloop_timeout beacon_sender = {
+	.cb = usteer_beacon_request_sender
+};
+
 static void
 node_list_cb(struct ubus_context *ctx, struct ubus_object_data *obj, void *priv)
 {
@@ -572,5 +591,9 @@ void
 usteer_local_nodes_init(struct ubus_context *ctx)
 {
 	usteer_register_events(ctx);
+
+	/* Register beacon request sender */
+	add_oneshot_timer(&beacon_sender, 1000);
+
 	ubus_lookup(ctx, "hostapd.*", node_list_cb, NULL);
 }
