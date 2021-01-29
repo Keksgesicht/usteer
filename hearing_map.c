@@ -28,7 +28,7 @@
 #include <libubox/blobmsg_json.h>
 
 #include "node.h"
-#include "usteer.h"
+/* #include "usteer.h" */
 #include "hearing_map.h"
 
 static struct blob_buf b;

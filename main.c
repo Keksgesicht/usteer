@@ -100,6 +100,7 @@ void usteer_init_defaults(void)
 	config.remote_disabled = false;
 
 	config.beacon_request_frequency = 30 * 1000;
+	config.beacon_request_signal_modifier = 20 * 1000;
 }
 
 void usteer_update_time(void)

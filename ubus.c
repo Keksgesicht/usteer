@@ -169,7 +169,8 @@ struct cfg_item {
     _cfg(U32, kick_client_active_bits), \
 	_cfg(ARRAY_CB, interfaces), \
 	_cfg(STRING_CB, node_up_script), \
-	_cfg(U32, beacon_request_frequency)
+	_cfg(U32, beacon_request_frequency), \
+	_cfg(U32, beacon_request_signal_modifier)
 	
 enum cfg_items {
 #define _cfg(_type, _name) CFG_##_name

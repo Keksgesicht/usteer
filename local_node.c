@@ -15,6 +15,10 @@
  *   Copyright (C) 2020 embedd.ch 
  *   Copyright (C) 2020 Felix Fietkau <nbd@nbd.name> 
  *   Copyright (C) 2020 John Crispin <john@phrozen.org> 
+ * 
+ *   Copyright (C) 2021 Nico Petermann <nico.petermann3@gmail.com>
+ *   Copyright (C) 2021 Tomas Duchac <tomasduchac@protonmail.ch>
+ * 	 Copyright (C) 2021 Philip Jonas Franz <R41Da@gmx.de>
  */
 
 #include <sys/types.h>
@@ -247,6 +251,23 @@ usteer_local_node_set_assoc(struct usteer_local_node *ln, struct blob_attr *cl)
 			n_assoc++;
 
 		usteer_update_client_active_bytes(si, cur);
+
+		struct beacon_request * br = &si->beacon_rqst;
+		
+		// based on the current reception, determine a the frequency beacon requests are sent.
+		uint64_t ctime = current_time;
+
+		MSG(DEBUG, "Current signal strength: %d", si->signal);
+
+		float dyn_freq = 
+		config.beacon_request_frequency + (config.beacon_request_signal_modifier * (si->signal / (1 + abs(si->signal))));
+		if (ctime - br->lastRequestTime < dyn_freq) 
+			continue; 
+		
+		sendBeaconReport(si);
+		br->lastRequestTime = ctime;
+		si->beacon_rqst = *br;
+
 	}
 
 	node->n_assoc = n_assoc;
@@ -533,28 +554,6 @@ usteer_register_events(struct ubus_context *ctx)
 	ubus_register_event_handler(ctx, &handler, "ubus.object.add");
 }
 
-
-void add_oneshot_timer(struct uloop_timeout *t, unsigned int delay);
-
-/* Add to uloop */
- void add_oneshot_timer(struct uloop_timeout *t, unsigned int delay)
-{
-	uloop_timeout_set(t, delay);
-	uloop_timeout_add(t);
-}
-
-static void
-usteer_beacon_request_sender(struct uloop_timeout *t)
-{
-	/* Send beacon requests here */
-	MSG(DEBUG, "Sent Request");
-	add_oneshot_timer(t, 1000);
-}
-
-struct uloop_timeout beacon_sender = {
-	.cb = usteer_beacon_request_sender
-};
-
 static void
 node_list_cb(struct ubus_context *ctx, struct ubus_object_data *obj, void *priv)
 {
@@ -594,9 +593,5 @@ void
 usteer_local_nodes_init(struct ubus_context *ctx)
 {
 	usteer_register_events(ctx);
-
-	/* Register beacon request sender */
-	add_oneshot_timer(&beacon_sender, 1000);
-
 	ubus_lookup(ctx, "hostapd.*", node_list_cb, NULL);
 }
