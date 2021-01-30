@@ -259,8 +259,11 @@ usteer_local_node_set_assoc(struct usteer_local_node *ln, struct blob_attr *cl)
 
 		MSG(DEBUG, "Current signal strength: %d", si->signal);
 
-		float dyn_freq = 
-		config.beacon_request_frequency + (config.beacon_request_signal_modifier * (si->signal / (1 + abs(si->signal))));
+		/* Adjust signal range from (-90 to -30) to (-30 to 30) */
+		int adj_signal = si->signal + 60;
+		float dyn_freq = config.beacon_request_frequency + 
+			(config.beacon_request_signal_modifier * (adj_signal / (1 + abs(adj_signal))));
+
 		if (ctime - br->lastRequestTime < dyn_freq) 
 			continue; 
 		
