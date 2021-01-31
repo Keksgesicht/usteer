@@ -48,6 +48,8 @@ usteer_ubus_get_clients(struct ubus_context *ctx, struct ubus_object *obj,
 			blobmsg_add_u8(&b, "connected", si->connected);
 			blobmsg_add_u32(&b, "signal", si->signal);
 			blobmsg_close_table(&b, _cur_n);
+
+			
 		}
 		blobmsg_close_table(&b, _s);
 	}

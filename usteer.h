@@ -260,6 +260,10 @@ extern struct avl_tree stations;
 extern uint64_t current_time;
 extern const char * const event_types[__EVENT_TYPE_MAX];
 
+
+int sendBeaconReport(struct sta_info * si);
+
+
 void usteer_update_time(void);
 void usteer_init_defaults(void);
 bool usteer_handle_sta_event(struct usteer_node *node, const uint8_t *addr,

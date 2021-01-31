@@ -26,27 +26,10 @@
 #include "node.h"
 #include "usteer.h"
 
-/* struct beacon_report {
-	struct list_head sta_list;
-	struct sta_info *address;
-	uint8_t bssid[6];
-	uint16_t rcpi;
-	uint16_t rsni;
-	uint16_t op_class;
-	uint16_t channel;
-	uint16_t duration;
-	uint64_t start_time;
-}; */
-/*
-struct beacon_req {
-	struct usteer_local_node *node;
-	struct beacon_report last_report;
-	uint8_t fallback_mode;
-	uint64_t lastRequestTime;
-};
-*/
 
-int sendBeaconReport(struct sta_info * si);
+
+
+//int sendBeaconReport(struct sta_info * si);
 int getChannelFromFreq(int freq);
 int getOPClassFromChannel(int channel);
 

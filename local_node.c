@@ -32,7 +32,7 @@
 
 #include <libubox/avl-cmp.h>
 #include <libubox/blobmsg_json.h>
-#include "usteer.h"
+
 #include "node.h"
 #include "hearing_map.h"
 
@@ -252,24 +252,7 @@ usteer_local_node_set_assoc(struct usteer_local_node *ln, struct blob_attr *cl)
 
 		usteer_update_client_active_bytes(si, cur);
 
-		struct beacon_request * br = &si->beacon_rqst;
 		
-		// based on the current reception, determine a the frequency beacon requests are sent.
-		uint64_t ctime = current_time;
-
-		MSG(DEBUG, "Current signal strength: %d", si->signal);
-
-		/* Adjust signal range from (-90 to -30) to (-30 to 30) */
-		int adj_signal = si->signal + 60;
-		float dyn_freq = config.beacon_request_frequency + 
-			(config.beacon_request_signal_modifier * (adj_signal / (1 + abs(adj_signal))));
-
-		if (ctime - br->lastRequestTime < dyn_freq) 
-			continue; 
-		
-		sendBeaconReport(si);
-		br->lastRequestTime = ctime;
-		si->beacon_rqst = *br;
 
 	}
 
@@ -426,6 +409,7 @@ usteer_local_node_update(struct uloop_timeout *timeout)
 	struct usteer_node_handler *h;
 	struct usteer_node *node;
 
+
 	ln = container_of(timeout, struct usteer_local_node, update);
 	node = &ln->node;
 
@@ -433,10 +417,37 @@ usteer_local_node_update(struct uloop_timeout *timeout)
 		config.local_sta_update);
 
 	list_for_each_entry(h, &node_handlers, list) {
-		if (!h->update_node)
-			continue;
 
-		h->update_node(node);
+		struct sta_info * si;
+		list_for_each_entry(si, &node->sta_info, node_list) {
+			struct beacon_request * br = &si->beacon_rqst;
+		
+		// based on the current reception, determine a the frequency beacon requests are sent.
+		uint64_t ctime = current_time;
+		MSG(DEBUG, "Current signal strength: %d", si->signal);
+		
+		/* Adjust signal range from (-90 to -30) to (-30 to 30) */
+		int adj_signal = si->signal + 60;
+
+		float dyn_freq = config.beacon_request_frequency + 
+			(config.beacon_request_signal_modifier * (adj_signal / (1 + abs(adj_signal))));
+
+		if (ctime - br->lastRequestTime < dyn_freq) 
+			continue; 
+
+		sendBeaconReport(si);
+		MSG(DEBUG, "Sent Report");
+		br->lastRequestTime = ctime;
+		si->beacon_rqst = *br;
+
+		if (si->connected)
+			si->connected = 2;
+		}
+		
+
+		if (!h->update_node)
+			continue;	
+		h->update_node(node);		
 	}
 
 	usteer_local_node_state_reset(ln);
