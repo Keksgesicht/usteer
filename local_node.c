@@ -427,10 +427,13 @@ usteer_local_node_update(struct uloop_timeout *timeout)
 		MSG(DEBUG, "Current signal strength: %d", si->signal);
 		
 		/* Adjust signal range from (-90 to -30) to (-30 to 30) */
-		int adj_signal = si->signal + 60;
+		float adj_signal =(float) (si->signal + 60);
 
 		float dyn_freq = config.beacon_request_frequency + 
 			(config.beacon_request_signal_modifier * (adj_signal / (1 + abs(adj_signal))));
+		
+		int testTime = (int) ctime;
+		MSG(DEBUG, "dyn_freq= %f, ctime= %d ",dyn_freq,testTime);
 
 		if (ctime - br->lastRequestTime < dyn_freq) 
 			continue; 
