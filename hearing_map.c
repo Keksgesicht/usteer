@@ -52,6 +52,11 @@ void usteer_hearing_map_by_client(struct blob_buf *bm, struct sta_info *si) {
 	_hm = blobmsg_open_table(bm, "hearing_map");
 	list_for_each_entry(br, &si->beacon, sta_list) {
 		_nr = blobmsg_open_table(bm, ether_ntoa((struct ether_addr *) br->bssid));
+
+		struct usteer_node *node = get_usteer_node_from_bssid(br->bssid);
+		if (node)
+			blobmsg_add_string(bm, "node", usteer_node_name(node));
+
 		blobmsg_add_u16(bm, "rcpi", br->rcpi);
 		blobmsg_add_u16(bm, "rsni", br->rsni);
 		blobmsg_add_u16(bm, "op_class", br->op_class);
