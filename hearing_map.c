@@ -47,7 +47,9 @@ static struct usteer_node* get_usteer_node_from_bssid(uint8_t *bssid){
 	return NULL;
 }
 
-int sendBeaconReport(struct sta_info * si){
+static int
+usteer_beacon_request_send(struct sta_info * si)
+{
 	struct usteer_local_node *ln = container_of(si->node, struct usteer_local_node, node);
 	struct usteer_node *un = &ln->node;
 	int freq = un->freq;
@@ -61,6 +63,8 @@ int sendBeaconReport(struct sta_info * si){
 	blobmsg_add_u32(&b, "channel", channel);
 	blobmsg_add_u32(&b, "op_class", opClass);
 	ubus_invoke(ubus_ctx, ln->obj_id, "rrm_beacon_req", b.head, NULL,0 , 100);
+
+	MSG(DEBUG, "Sent Beacon Request to "MAC_ADDR_FMT,  MAC_ADDR_DATA(si->sta->addr));
 	return 0;
 }
 
@@ -129,6 +133,29 @@ static const struct blobmsg_policy beacon_rep_policy[__BEACON_REP_MAX] = {
 	[BEACON_REP_DURATION] = {.name = "duration", .type = BLOBMSG_TYPE_INT16},
 	[BEACON_REP_START] = {.name = "start-time", .type = BLOBMSG_TYPE_INT64},
 };
+
+void usteer_beacon_request_check(struct sta_info *si) {
+	struct beacon_request * br = &si->beacon_rqst;
+
+	// based on the current reception, determine a the frequency beacon requests are sent.
+	uint64_t ctime = current_time;
+	MSG(DEBUG, "Current signal strength: %d", si->signal);
+
+	/* Adjust signal range from (-90 to -30) to (-30 to 30) */
+	float adj_signal =(float) (si->signal + 60);
+
+	float dyn_freq = config.beacon_request_frequency +
+					 (config.beacon_request_signal_modifier * (adj_signal / (1 + abs(adj_signal))));
+
+	MSG(DEBUG, "dyn_freq=%f, ctime=%llu", dyn_freq, ctime);
+
+	if (ctime - br->lastRequestTime < dyn_freq)
+		return;
+
+	usteer_beacon_request_send(si);
+	br->lastRequestTime = ctime;
+	si->beacon_rqst = *br;
+}
 
 static void usteer_beacon_del(struct beacon_report *br) {
 	list_del(&br->sta_list);

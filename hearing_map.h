@@ -26,12 +26,10 @@
 #include "node.h"
 #include "usteer.h"
 
-
-
-
-//int sendBeaconReport(struct sta_info * si);
 int getChannelFromFreq(int freq);
 int getOPClassFromChannel(int channel);
+
+void usteer_beacon_request_check(struct sta_info *si);
 
 void usteer_beacon_cleanup(struct sta_info *si, uint64_t time);
 void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg);
