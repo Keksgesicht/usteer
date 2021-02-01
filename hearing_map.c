@@ -34,12 +34,12 @@ get_usteer_node_from_bssid(uint8_t *bssid)
 {
 	struct usteer_node *node;
 	avl_for_each_element(&local_nodes, node, avl) {
-		if (memcmp(&node->mac, bssid, 6) == 0)
+		if (memcmp(&node->bssid, bssid, 6) == 0)
 			return node;
 	}
 	struct usteer_remote_node *rn;
 	avl_for_each_element(&remote_nodes, rn, avl) {
-		if (memcmp(&rn->node.mac, bssid, 6) == 0)
+		if (memcmp(&rn->node.bssid, bssid, 6) == 0)
 			return &rn->node;
 	}
 	return NULL;

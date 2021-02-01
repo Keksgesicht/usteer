@@ -62,7 +62,7 @@ struct usteer_node {
 	struct blob_attr *rrm_nr;
 	struct blob_attr *script_data;
 	char ssid[33];
-	uint8_t mac[6];
+	uint8_t bssid[6];
 
 	int freq;
 	int noise;

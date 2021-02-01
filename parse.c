@@ -78,7 +78,7 @@ bool parse_apmsg_node(struct apmsg_node *msg, struct blob_attr *data)
 	msg->freq = blob_get_int32(tb[APMSG_NODE_FREQ]);
 	msg->stations = tb[APMSG_NODE_STATIONS];
 	msg->ssid = blob_data(tb[APMSG_NODE_SSID]);
-	msg->mac = blob_data(tb[APMSG_NODE_MAC]);
+	msg->mac = blob_data(tb[APMSG_NODE_BSSID]);
 
 	msg->noise = get_int32(tb[APMSG_NODE_NOISE]);
 	msg->load = get_int32(tb[APMSG_NODE_LOAD]);
