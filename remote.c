@@ -243,11 +243,14 @@ interface_add_node(struct interface *iface, const char *addr, unsigned long id, 
 	usteer_node_set_blob(&node->node.rrm_nr, msg.rrm_nr);
 	usteer_node_set_blob(&node->node.script_data, msg.script_data);
 
+	struct usteer_node *un;
 	uint8_t *mac = (uint8_t *) ether_aton(msg.mac);
-	memcpy(node->node.mac, mac, sizeof(node->node.mac));
-	node->node.beacon.key = node->node.mac;
-	avl_insert(&beacon_nodes, &node->node.beacon);
-
+	if(!avl_find_element(&beacon_nodes, addr, un, beacon)) {
+		memcpy(node->node.mac, mac, sizeof(node->node.mac));
+		node->node.beacon.key = node->node.mac;
+		avl_insert(&beacon_nodes, &node->node.beacon);
+	}
+	
 	blob_for_each_attr(cur, msg.stations, rem)
 		interface_add_station(node, cur);
 }

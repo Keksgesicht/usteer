@@ -314,10 +314,13 @@ usteer_local_node_rrm_nr_cb(struct ubus_request *req, int type, struct blob_attr
 	struct blob_attr *ba[3];
 	blobmsg_parse_array(policy_mac, ARRAY_SIZE(ba), ba, blobmsg_data(ln->node.rrm_nr), blobmsg_data_len(ln->node.rrm_nr));
 	if (ba[0]) {
+		struct usteer_node *un;
 		uint8_t *addr = (uint8_t *) ether_aton(blobmsg_get_string(ba[0]));
-		memcpy(ln->node.mac, addr, sizeof(ln->node.mac));
-		ln->node.beacon.key = ln->node.mac;
-		avl_insert(&beacon_nodes, &ln->node.beacon);
+		if(!avl_find_element(&beacon_nodes, addr, un, beacon)) {
+			memcpy(ln->node.mac, addr, sizeof(ln->node.mac));
+			ln->node.beacon.key = ln->node.mac;
+			avl_insert(&beacon_nodes, &ln->node.beacon);
+		}
 	}
 }
 
