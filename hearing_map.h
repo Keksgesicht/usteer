@@ -34,6 +34,7 @@ struct beacon_report {
 	uint16_t channel;
 	uint16_t duration;
 	uint64_t start_time;
+	uint64_t usteer_time;
 };
 
 struct beacon_request {
@@ -48,7 +49,7 @@ int getOPClassFromChannel(int channel);
 
 void usteer_hearing_map_by_client(struct blob_buf *bm, struct sta_info *si);
 
-void usteer_beacon_cleanup(struct sta_info *si, uint64_t time);
+void usteer_beacon_report_cleanup(struct sta_info *si, uint8_t *bssid);
 void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg);
 
 char *usteer_node_get_mac(struct usteer_node *node);

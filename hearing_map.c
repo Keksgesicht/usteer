@@ -45,14 +45,39 @@ get_usteer_node_from_bssid(uint8_t *bssid)
 	return NULL;
 }
 
+static inline void
+usteer_beacon_report_free(struct beacon_report *br)
+{
+	list_del(&br->sta_list);
+	free(br);
+}
+
+static bool
+usteer_beacon_report_delete(struct beacon_report *br, uint8_t *bssid)
+{
+	if (bssid && memcmp(br->bssid, bssid, 6) == 0) {
+		usteer_beacon_report_free(br);
+		return true;
+	}
+	uint64_t time_diff = current_time - br->usteer_time;
+	uint64_t time_diff_conf = config.beacon_report_invalide_timeout * 1000;
+	if (time_diff_conf < time_diff) {
+		usteer_beacon_report_free(br);
+		return true;
+	}
+	return false;
+}
+
 void usteer_hearing_map_by_client(struct blob_buf *bm, struct sta_info *si) {
-	struct beacon_report *br;
+	struct beacon_report *br, *tmp;
 	void *_hm, *_nr;
 
 	_hm = blobmsg_open_table(bm, "hearing_map");
-	list_for_each_entry(br, &si->beacon, sta_list) {
-		_nr = blobmsg_open_table(bm, ether_ntoa((struct ether_addr *) br->bssid));
+	list_for_each_entry_safe(br, tmp, &si->beacon, sta_list) {
+		if (usteer_beacon_report_delete(br, NULL))
+			continue;
 
+		_nr = blobmsg_open_table(bm, ether_ntoa((struct ether_addr *) br->bssid));
 		struct usteer_node *node = get_usteer_node_from_bssid(br->bssid);
 		if (node)
 			blobmsg_add_string(bm, "node", usteer_node_name(node));
@@ -134,16 +159,11 @@ static const struct blobmsg_policy beacon_rep_policy[__BEACON_REP_MAX] = {
 	[BEACON_REP_START] = {.name = "start-time", .type = BLOBMSG_TYPE_INT64},
 };
 
-static void usteer_beacon_del(struct beacon_report *br) {
-	list_del(&br->sta_list);
-	free(br);
-}
-
-void usteer_beacon_cleanup(struct sta_info *si, uint64_t time) {
+void usteer_beacon_report_cleanup(struct sta_info *si, uint8_t *bssid) {
 	struct beacon_report *br, *tmp;
 	list_for_each_entry_safe(br, tmp, &si->beacon, sta_list)
-		if (br->start_time != time)
-			usteer_beacon_del(br);
+		bssid ? usteer_beacon_report_delete(br, bssid)
+		      : usteer_beacon_report_free(br);
 }
 
 void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg) {
@@ -177,11 +197,12 @@ void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg) 
 	br->channel = blobmsg_get_u16(tb[BEACON_REP_CHANNEL]);
 	br->duration = blobmsg_get_u16(tb[BEACON_REP_DURATION]);
 	br->start_time = blobmsg_get_u64(tb[BEACON_REP_START]);
+	br->usteer_time = current_time; // beacon_report_invalide_timeout
 
 	MSG(DEBUG, "received beacon-report {op-class=%d, channel=%d, rcpi=%d, rsni=%d, start=%llu, bssid=%s} on %s from %s",
 		br->op_class, br->channel, br->rcpi, br->rsni, br->start_time, bssid, ln->iface, address);
+	usteer_beacon_report_cleanup(si, br->bssid);
 	list_add(&br->sta_list, &si->beacon);
-	usteer_beacon_cleanup(si, br->start_time);
 
 	node = get_usteer_node_from_bssid(br->bssid);
 	if (node)

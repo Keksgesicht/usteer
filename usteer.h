@@ -158,6 +158,8 @@ struct usteer_config {
 	uint32_t kick_client_active_sec;
 	uint32_t kick_client_active_bits;
 
+	uint32_t beacon_report_invalide_timeout;
+
 	const char *node_up_script;
 };
 

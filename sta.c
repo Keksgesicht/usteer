@@ -48,7 +48,7 @@ usteer_sta_info_del(struct sta_info *si)
 	    MAC_ADDR_DATA(sta->addr), usteer_node_name(si->node));
 
 	usteer_timeout_cancel(&tq, &si->timeout);
-	usteer_beacon_cleanup(si, 0);
+	usteer_beacon_report_cleanup(si, NULL);
 	list_del(&si->list);
 	list_del(&si->node_list);
 	free(si);

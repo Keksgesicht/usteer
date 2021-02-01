@@ -95,6 +95,8 @@ void usteer_init_defaults(void)
 	config.kick_client_active_sec = 30;
 	config.kick_client_active_bits = 50000;
 
+	config.beacon_report_invalide_timeout = 120;
+
 	config.debug_level = MSG_FATAL;
 
 	config.remote_disabled = false;
