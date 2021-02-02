@@ -96,6 +96,8 @@ void usteer_init_defaults(void)
 	config.kick_client_active_bits = 50000;
 
 	config.beacon_report_invalide_timeout = 120;
+	config.beacon_request_frequency = 30 * 1000;
+	config.beacon_request_signal_modifier = 20 * 1000;
 
 	config.debug_level = MSG_FATAL;
 

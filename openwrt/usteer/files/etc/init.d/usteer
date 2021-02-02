@@ -70,6 +70,7 @@ uci_usteer() {
 		load_kick_threshold load_kick_delay load_kick_min_clients \
 		load_kick_reason_code \
 		kick_client_active_sec kick_client_active_bits \
+		beacon_request_frequency beacon_request_signal_modifier \
 		beacon_report_invalide_timeout
 	do
 		uci_option_to_json "$cfg" "$opt"

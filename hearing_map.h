@@ -14,6 +14,8 @@
  *
  *   Copyright (C) 2021 Jan Braun <jan-kai@braun-bs.de>
  *   Copyright (C) 2021 Nico Petermann <nico.petermann3@gmail.com>
+ *   Copyright (C) 2021 Tomas Duchac <tomasduchac@protonmail.ch>
+ * 	 Copyright (C) 2021 Philip Jonas Franz <R41Da@gmx.de>
  */
 
 #ifndef __APMGR_HEARING_MAP_H
@@ -23,32 +25,11 @@
 
 #include "node.h"
 #include "usteer.h"
-
-struct beacon_report {
-	struct list_head sta_list;
-	struct sta_info *address;
-	uint8_t bssid[6];
-	uint16_t rcpi;
-	uint16_t rsni;
-	uint16_t op_class;
-	uint16_t channel;
-	uint16_t duration;
-	uint64_t start_time;
-	uint64_t usteer_time;
-};
-
-struct beacon_request {
-	struct usteer_local_node *node;
-	struct beacon_report last_report;
-	uint8_t fallback_mode;
-	uint64_t nextRequestTime;
-};
-
 int getChannelFromFreq(int freq);
 int getOPClassFromChannel(int channel);
 
 void usteer_hearing_map_by_client(struct blob_buf *bm, struct sta_info *si);
-
+void usteer_beacon_request_check(struct sta_info *si);
 void usteer_beacon_report_cleanup(struct sta_info *si, uint8_t *bssid);
 void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg);
 

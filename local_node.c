@@ -15,6 +15,11 @@
  *   Copyright (C) 2020 embedd.ch 
  *   Copyright (C) 2020 Felix Fietkau <nbd@nbd.name> 
  *   Copyright (C) 2020 John Crispin <john@phrozen.org> 
+ *
+ *   Copyright (C) 2021 Nico Petermann <nico.petermann3@gmail.com>
+ *   Copyright (C) 2021 Tomas Duchac <tomasduchac@protonmail.ch>
+ *   Copyright (C) 2021 Philip Jonas Franz <R41Da@gmx.de>
+ *   Copyright (C) 2021 Jan Braun <jan-kai@braun-bs.de>
  */
 
 #include <sys/types.h>
@@ -247,6 +252,7 @@ usteer_local_node_set_assoc(struct usteer_local_node *ln, struct blob_attr *cl)
 			n_assoc++;
 
 		usteer_update_client_active_bytes(si, cur);
+		usteer_beacon_request_check(si);
 	}
 
 	node->n_assoc = n_assoc;

@@ -14,6 +14,8 @@
  *
  *   Copyright (C) 2021 Jan Braun <jan-kai@braun-bs.de>
  *   Copyright (C) 2021 Nico Petermann <nico.petermann3@gmail.com>
+ * 	 Copyright (C) 2021 Tomas Duchac <tomasduchac@protonmail.ch>
+ * 	 Copyright (C) 2021 Philip Jonas Franz <R41Da@gmx.de>
  */
 
 #include <sys/types.h>
@@ -28,6 +30,8 @@
 #include "node.h"
 #include "usteer.h"
 #include "hearing_map.h"
+
+static struct blob_buf b;
 
 static struct usteer_node*
 get_usteer_node_from_bssid(uint8_t *bssid)
@@ -91,6 +95,24 @@ void usteer_hearing_map_by_client(struct blob_buf *bm, struct sta_info *si) {
 		blobmsg_close_table(bm, _nr);
 	}
 	blobmsg_close_table(bm, _hm);
+}
+
+static void
+usteer_beacon_request_send(struct sta_info * si, int freq, uint8_t mode)
+{
+	struct usteer_local_node *ln = container_of(si->node, struct usteer_local_node, node);
+	int channel = getChannelFromFreq(freq);
+	int opClass = getOPClassFromChannel(channel);
+	
+	blob_buf_init(&b, 0);
+	blobmsg_printf(&b, "addr", MAC_ADDR_FMT, MAC_ADDR_DATA(si->sta->addr));
+	blobmsg_add_u32(&b, "mode", mode);
+	blobmsg_add_u32(&b, "duration", 10);
+	blobmsg_add_u32(&b, "channel", channel);
+	blobmsg_add_u32(&b, "op_class", opClass);
+	
+	ubus_invoke(ubus_ctx, ln->obj_id, "rrm_beacon_req", b.head, NULL,0 , 100);
+	MSG(DEBUG, "Send Beacon Request to "MAC_ADDR_FMT" with mode %hhu", MAC_ADDR_DATA(si->sta->addr), mode);
 }
 
 int getChannelFromFreq(int freq) {
@@ -159,6 +181,48 @@ static const struct blobmsg_policy beacon_rep_policy[__BEACON_REP_MAX] = {
 	[BEACON_REP_START] = {.name = "start-time", .type = BLOBMSG_TYPE_INT64},
 };
 
+static uint8_t
+usteer_get_beacon_request_mode(struct sta_info *si, int freq)
+{
+	int failed_requests = si->beacon_rqst.failed_requests++;
+	MSG(DEBUG, MAC_ADDR_FMT" failed request count is %d", MAC_ADDR_DATA(si->sta->addr), failed_requests);
+
+	if (freq < 4000) {
+		if (failed_requests < 3)
+			return 1;
+		if (failed_requests < 7)
+			return 0;
+	}
+	if (freq > 4000 && failed_requests < 5)
+		return 0;
+
+	return 2;
+}
+
+void usteer_beacon_request_check(struct sta_info *si) {
+	struct beacon_request *br = &si->beacon_rqst;
+
+	// based on the current reception, determine a the frequency beacon requests are sent.
+	uint64_t ctime = current_time;
+	MSG(DEBUG, "Current signal strength: %d", si->signal);
+
+	/* Adjust signal range from (-90 to -30) to (-30 to 30) */
+	float adj_signal = (float) (si->signal + 60);
+
+	float dyn_freq = config.beacon_request_frequency +
+					 (config.beacon_request_signal_modifier * (adj_signal / (1 + abs(adj_signal))));
+
+	MSG(DEBUG, "dyn_freq=%f, ctime=%llu", dyn_freq, ctime);
+
+	if (ctime - br->lastRequestTime < dyn_freq)
+		return;
+
+	int freq = si->node->freq; // scanning the other band?
+	uint8_t mode = usteer_get_beacon_request_mode(si, freq);
+	usteer_beacon_request_send(si, freq, mode);
+	br->lastRequestTime = ctime;
+}
+
 void usteer_beacon_report_cleanup(struct sta_info *si, uint8_t *bssid) {
 	struct beacon_report *br, *tmp;
 	list_for_each_entry_safe(br, tmp, &si->beacon, sta_list)
@@ -186,6 +250,7 @@ void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg) 
 	si = usteer_sta_info_get(sta, node, NULL);
 	if (!si) return;
 	br->address = si;
+	si->beacon_rqst.failed_requests /= 2;
 
 	char *bssid = blobmsg_get_string(tb[BEACON_REP_BSSID]);
 	uint8_t *addr = (uint8_t *) ether_aton(bssid);

@@ -15,6 +15,11 @@
  *   Copyright (C) 2020 embedd.ch 
  *   Copyright (C) 2020 Felix Fietkau <nbd@nbd.name> 
  *   Copyright (C) 2020 John Crispin <john@phrozen.org> 
+ *
+ *   Copyright (C) 2021 Jan Braun <jan-kai@braun-bs.de>
+ *   Copyright (C) 2021 Nico Petermann <nico.petermann3@gmail.com>
+ *   Copyright (C) 2021 Tomas Duchac <tomasduchac@protonmail.ch>
+ * 	 Copyright (C) 2021 Philip Jonas Franz <R41Da@gmx.de>
  */
 
 #ifndef __APMGR_H
@@ -159,6 +164,8 @@ struct usteer_config {
 	uint32_t kick_client_active_bits;
 
 	uint32_t beacon_report_invalide_timeout;
+	uint32_t beacon_request_frequency;
+	uint32_t beacon_request_signal_modifier;
 
 	const char *node_up_script;
 };
@@ -189,6 +196,26 @@ struct sta_active_bytes {
 	uint64_t last_time;
 };
 
+struct beacon_report {
+	struct list_head sta_list;
+	struct sta_info *address;
+	uint8_t bssid[6];
+	uint16_t rcpi;
+	uint16_t rsni;
+	uint16_t op_class;
+	uint16_t channel;
+	uint16_t duration;
+	uint64_t start_time;
+	uint64_t usteer_time;
+};
+
+struct beacon_request {
+	struct usteer_local_node *node;
+	struct beacon_report last_report;
+	uint8_t failed_requests; // fallback methods
+	uint64_t lastRequestTime;
+};
+
 struct sta_info {
 	struct list_head list;
 	struct list_head node_list;
@@ -212,6 +239,7 @@ struct sta_info {
 
 	int kick_count;
 	struct sta_active_bytes active_bytes;
+	struct beacon_request beacon_rqst;
 
 	uint8_t scan_band : 1;
 	uint8_t connected : 2;
