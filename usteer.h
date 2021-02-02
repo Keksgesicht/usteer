@@ -210,7 +210,7 @@ struct beacon_report {
 struct beacon_request {
 	struct usteer_local_node *node;
 	struct beacon_report last_report;
-	uint8_t fallback_mode;
+	uint8_t failed_requests; // fallback methods
 	uint64_t lastRequestTime;
 };
 
