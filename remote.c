@@ -243,8 +243,8 @@ interface_add_node(struct interface *iface, const char *addr, unsigned long id, 
 	usteer_node_set_blob(&node->node.rrm_nr, msg.rrm_nr);
 	usteer_node_set_blob(&node->node.script_data, msg.script_data);
 
-	uint8_t *mac = (uint8_t *) ether_aton(msg.mac);
-	memcpy(node->node.bssid, mac, sizeof(node->node.bssid));
+	uint8_t *bssid = (uint8_t *) ether_aton(msg.bssid);
+	memcpy(node->node.bssid, bssid, sizeof(node->node.bssid));
 
 	blob_for_each_attr(cur, msg.stations, rem)
 		interface_add_station(node, cur);

@@ -306,16 +306,16 @@ usteer_local_node_rrm_nr_cb(struct ubus_request *req, int type, struct blob_attr
 
 	usteer_node_set_blob(&ln->node.rrm_nr, tb);
 
-	struct blobmsg_policy policy_mac[3] = {
+	struct blobmsg_policy policy_bssid[3] = {
 			{ .type = BLOBMSG_TYPE_STRING },
 			{ .type = BLOBMSG_TYPE_STRING },
 			{ .type = BLOBMSG_TYPE_STRING },
 	};
 	struct blob_attr *ba[3];
-	blobmsg_parse_array(policy_mac, ARRAY_SIZE(ba), ba, blobmsg_data(ln->node.rrm_nr), blobmsg_data_len(ln->node.rrm_nr));
+	blobmsg_parse_array(policy_bssid, ARRAY_SIZE(ba), ba, blobmsg_data(ln->node.rrm_nr), blobmsg_data_len(ln->node.rrm_nr));
 	if (ba[0]) {
-		uint8_t *addr = (uint8_t *) ether_aton(blobmsg_get_string(ba[0]));
-		memcpy(ln->node.bssid, addr, sizeof(ln->node.bssid));
+		uint8_t *bssid = (uint8_t *) ether_aton(blobmsg_get_string(ba[0]));
+		memcpy(ln->node.bssid, bssid, sizeof(ln->node.bssid));
 	}
 }
 

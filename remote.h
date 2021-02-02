@@ -53,7 +53,7 @@ enum {
 struct apmsg_node {
 	const char *name;
 	const char *ssid;
-	const char *mac;
+	const char *bssid;
 	int freq;
 	int n_assoc;
 	int max_assoc;
