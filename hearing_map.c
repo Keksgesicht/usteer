@@ -90,7 +90,6 @@ void usteer_hearing_map_by_client(struct blob_buf *bm, struct sta_info *si) {
 		blobmsg_add_u16(bm, "rsni", br->rsni);
 		blobmsg_add_u16(bm, "op_class", br->op_class);
 		blobmsg_add_u16(bm, "channel", br->channel);
-		blobmsg_add_u16(bm, "duration", br->duration);
 		blobmsg_add_u64(bm, "start_time", br->start_time);
 		blobmsg_close_table(bm, _nr);
 	}
@@ -108,14 +107,15 @@ usteer_beacon_request_send(struct sta_info * si, int freq, uint8_t mode)
 	blob_buf_init(&b, 0);
 	blobmsg_printf(&b, "addr", MAC_ADDR_FMT, MAC_ADDR_DATA(si->sta->addr));
 	blobmsg_add_u32(&b, "mode", mode);
-	blobmsg_add_u32(&b, "duration", 10);
+	blobmsg_add_u32(&b, "duration", 200);
 	blobmsg_add_u32(&b, "channel", channel);
 	blobmsg_add_u32(&b, "op_class", opClass);
-
+	blobmsg_add_string(&b, "bssid", "ff:ff:ff:ff:ff:ff");
 
 	ubus_invoke_async(ubus_ctx, ln->obj_id, "rrm_beacon_req", b.head, &req);
 	req.data_cb = NULL;
-	MSG(DEBUG, "Send Beacon Request to "MAC_ADDR_FMT" with mode %hhu", MAC_ADDR_DATA(si->sta->addr), mode);
+	MSG(DEBUG, "send beacon-request {channel=%d, mode=%hhu} on %s to "MAC_ADDR_FMT,
+		channel, mode, ln->iface, MAC_ADDR_DATA(si->sta->addr));
 }
 
 int getChannelFromFreq(int freq) {
@@ -180,7 +180,6 @@ static const struct blobmsg_policy beacon_rep_policy[__BEACON_REP_MAX] = {
 	[BEACON_REP_CHANNEL] = {.name = "channel", .type = BLOBMSG_TYPE_INT16},
 	[BEACON_REP_RCPI] = {.name = "rcpi", .type = BLOBMSG_TYPE_INT16},
 	[BEACON_REP_RSNI] = {.name = "rsni", .type = BLOBMSG_TYPE_INT16},
-	[BEACON_REP_DURATION] = {.name = "duration", .type = BLOBMSG_TYPE_INT16},
 	[BEACON_REP_START] = {.name = "start-time", .type = BLOBMSG_TYPE_INT64},
 };
 
@@ -259,7 +258,6 @@ void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg) 
 	br->rsni = blobmsg_get_u16(tb[BEACON_REP_RSNI]);
 	br->op_class = blobmsg_get_u16(tb[BEACON_REP_OP_CLASS]);
 	br->channel = blobmsg_get_u16(tb[BEACON_REP_CHANNEL]);
-	br->duration = blobmsg_get_u16(tb[BEACON_REP_DURATION]);
 	br->start_time = blobmsg_get_u64(tb[BEACON_REP_START]);
 	br->usteer_time = current_time; // beacon_report_invalide_timeout
 
@@ -269,8 +267,8 @@ void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg) 
 		si->beacon_rqst.lastReportTime = br->start_time;
 	}
 
-	MSG(DEBUG, "received beacon-report {op-class=%d, channel=%d, rcpi=%d, rsni=%d, start=%llu, bssid=%s} on %s from %s",
-		br->op_class, br->channel, br->rcpi, br->rsni, br->start_time, bssid, ln->iface, address);
+	MSG(DEBUG, "received beacon-report {op-class=%d, channel=%d, rcpi=%d, rsni=%d, bssid=%s} on %s from %s",
+		br->op_class, br->channel, br->rcpi, br->rsni, bssid, ln->iface, address);
 	usteer_beacon_report_cleanup(si, br->bssid);
 	list_add(&br->sta_list, &si->beacon);
 }
