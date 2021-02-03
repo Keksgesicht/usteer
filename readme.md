@@ -45,6 +45,6 @@
 | `load_kick_reason_code` | The reason why a client was load-kicked. Default is WLAN_REASON_DISASSOC_AP_BUSY (5) | `5` |  `802.11-2016 Table 9-45 Reason codes ` |
 | `kick_client_active_sec` | The time interval in which the client transfered bits are measured. | `30` | `unsigned 32 bit int` |
 | `kick_client_active_bits` | How many bits per second (average over the time above) the client needs to transfer without getting kicked | `50000` | `unsigned 32 bit int` |
-| `beacon_report_invalide_timeout` | Beacon Reports older than this time in seconds will be removed | `120` | `unsigned 32 bit int` |
+| `beacon_report_invalide_timeout` | Beacon Reports older than this time in seconds will be removed | `300` | `unsigned 32 bit int` |
 | `node_up_script` | executable that is executed after the usteer node starts up. | `0` |  `string` |
 <br>
