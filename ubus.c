@@ -108,11 +108,11 @@ usteer_ubus_get_client_info(struct ubus_context *ctx, struct ubus_object *obj,
 		for (i = 0; i < __EVENT_TYPE_MAX; i++)
 			usteer_ubus_add_stats(&si->stats[EVENT_TYPE_PROBE], event_types[i]);
 		blobmsg_close_table(&b, _s);
-		blobmsg_close_table(&b, _cur_n);
 		if (si->node->type == NODE_TYPE_LOCAL && si->connected) {
 			blobmsg_add_u64(&b, "average_data_rate", usteer_local_node_active_bits(si));
 			usteer_hearing_map_by_client(&b, si);
 		}
+		blobmsg_close_table(&b, _cur_n);
 	}
 	blobmsg_close_table(&b, _n);
 
