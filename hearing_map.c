@@ -100,6 +100,7 @@ void usteer_hearing_map_by_client(struct blob_buf *bm, struct sta_info *si) {
 static void
 usteer_beacon_request_send(struct sta_info * si, int freq, uint8_t mode)
 {
+	static struct ubus_request req;
 	struct usteer_local_node *ln = container_of(si->node, struct usteer_local_node, node);
 	int channel = getChannelFromFreq(freq);
 	int opClass = getOPClassFromChannel(channel);
@@ -110,8 +111,10 @@ usteer_beacon_request_send(struct sta_info * si, int freq, uint8_t mode)
 	blobmsg_add_u32(&b, "duration", 10);
 	blobmsg_add_u32(&b, "channel", channel);
 	blobmsg_add_u32(&b, "op_class", opClass);
-	
-	ubus_invoke(ubus_ctx, ln->obj_id, "rrm_beacon_req", b.head, NULL,0 , 100);
+
+
+	ubus_invoke_async(ubus_ctx, ln->obj_id, "rrm_beacon_req", b.head, &req);
+	req.data_cb = NULL;
 	MSG(DEBUG, "Send Beacon Request to "MAC_ADDR_FMT" with mode %hhu", MAC_ADDR_DATA(si->sta->addr), mode);
 }
 
