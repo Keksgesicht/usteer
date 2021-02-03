@@ -248,7 +248,6 @@ void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg) 
 	if(!sta) return;
 	si = usteer_sta_info_get(sta, node, NULL);
 	if (!si) return;
-	si->beacon_rqst.failed_requests /= 2;
 
 	char *bssid = blobmsg_get_string(tb[BEACON_REP_BSSID]);
 	uint8_t *addr = (uint8_t *) ether_aton(bssid);
@@ -265,6 +264,13 @@ void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg) 
 	br->duration = blobmsg_get_u16(tb[BEACON_REP_DURATION]);
 	br->start_time = blobmsg_get_u64(tb[BEACON_REP_START]);
 	br->usteer_time = current_time; // beacon_report_invalide_timeout
+
+	uint64_t last_report_time = si->beacon_rqst.lastReportTime;
+	if (last_report_time != br->start_time) {
+		si->beacon_rqst.failed_requests /= 2;
+		si->beacon_rqst.lastReportTime = br->start_time;
+		MSG(DEBUG, "ONLY ONCE !!!!");
+	}
 
 	MSG(DEBUG, "received beacon-report {op-class=%d, channel=%d, rcpi=%d, rsni=%d, start=%llu, bssid=%s} on %s from %s",
 		br->op_class, br->channel, br->rcpi, br->rsni, br->start_time, bssid, ln->iface, address);
