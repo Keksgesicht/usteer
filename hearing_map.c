@@ -188,7 +188,6 @@ static uint8_t
 usteer_get_beacon_request_mode(struct sta_info *si, int freq)
 {
 	int failed_requests = si->beacon_rqst.failed_requests++;
-	MSG(DEBUG, MAC_ADDR_FMT" failed request count is %d", MAC_ADDR_DATA(si->sta->addr), failed_requests);
 
 	if (freq < 4000) {
 		if (failed_requests < 3)
@@ -204,19 +203,15 @@ usteer_get_beacon_request_mode(struct sta_info *si, int freq)
 
 void usteer_beacon_request_check(struct sta_info *si) {
 	struct beacon_request *br = &si->beacon_rqst;
-
-	// based on the current reception, determine a the frequency beacon requests are sent.
 	uint64_t ctime = current_time;
-	MSG(DEBUG, "Current signal strength: %d", si->signal);
 
-	/* Adjust signal range from (-90 to -30) to (-30 to 30) */
+	/*
+	 * based on the current reception, determine a the frequency beacon requests are sent.
+	 * Adjust signal range from (-90 to -30) to (-30 to 30)
+	 * */
 	float adj_signal = (float) (si->signal + 60);
-
 	float dyn_freq = config.beacon_request_frequency +
 					 (config.beacon_request_signal_modifier * (adj_signal / (1 + abs(adj_signal))));
-
-	MSG(DEBUG, "dyn_freq=%f, ctime=%llu", dyn_freq, ctime);
-
 	if (ctime - br->lastRequestTime < dyn_freq)
 		return;
 
@@ -272,7 +267,6 @@ void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg) 
 	if (last_report_time != br->start_time) {
 		si->beacon_rqst.failed_requests /= 2;
 		si->beacon_rqst.lastReportTime = br->start_time;
-		MSG(DEBUG, "ONLY ONCE !!!!");
 	}
 
 	MSG(DEBUG, "received beacon-report {op-class=%d, channel=%d, rcpi=%d, rsni=%d, start=%llu, bssid=%s} on %s from %s",
