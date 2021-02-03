@@ -241,7 +241,6 @@ void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg) 
 	blobmsg_parse(beacon_rep_policy, __BEACON_REP_MAX, tb, blob_data(msg), blob_len(msg));
 	if(!tb[BEACON_REP_BSSID] || !tb[BEACON_REP_ADDR])
 		return;
-	br = malloc(sizeof(struct beacon_report));
 
 	char *address = blobmsg_get_string(tb[BEACON_REP_ADDR]);
 	uint8_t *addr_sta = (uint8_t *) ether_aton(address);
@@ -249,13 +248,16 @@ void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg) 
 	if(!sta) return;
 	si = usteer_sta_info_get(sta, node, NULL);
 	if (!si) return;
-	br->address = si;
 	si->beacon_rqst.failed_requests /= 2;
 
 	char *bssid = blobmsg_get_string(tb[BEACON_REP_BSSID]);
 	uint8_t *addr = (uint8_t *) ether_aton(bssid);
-	memcpy(br->bssid, addr, sizeof(br->bssid));
+	if(!get_usteer_node_from_bssid(addr))
+		return;
 
+	br = malloc(sizeof(struct beacon_report));
+	br->address = si;
+	memcpy(br->bssid, addr, sizeof(br->bssid));
 	br->rcpi = blobmsg_get_u16(tb[BEACON_REP_RCPI]);
 	br->rsni = blobmsg_get_u16(tb[BEACON_REP_RSNI]);
 	br->op_class = blobmsg_get_u16(tb[BEACON_REP_OP_CLASS]);
@@ -268,8 +270,4 @@ void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg) 
 		br->op_class, br->channel, br->rcpi, br->rsni, br->start_time, bssid, ln->iface, address);
 	usteer_beacon_report_cleanup(si, br->bssid);
 	list_add(&br->sta_list, &si->beacon);
-
-	node = get_usteer_node_from_bssid(br->bssid);
-	if (node)
-		MSG(DEBUG, "bssid=%s is %s node %p", bssid, node->type ? "remote" : "local", node);
 }
