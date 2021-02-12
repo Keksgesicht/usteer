@@ -376,14 +376,55 @@ int usteer_ubus_notify_client_disassoc(struct sta_info *si)
 	struct usteer_node *node;
 	void *c;
 
+	int MAX_NODES = 3;
+
 	blob_buf_init(&b, 0);
 	blobmsg_printf(&b, "addr", MAC_ADDR_FMT, MAC_ADDR_DATA(si->sta->addr));
 	blobmsg_add_u32(&b, "duration", config.roam_kick_delay);
 	c = blobmsg_open_array(&b, "neighbors");
-	avl_for_each_element(&local_nodes, node, avl)
-		usteer_add_nr_entry(si->node, node);
-	avl_for_each_element(&remote_nodes, rn, avl)
-		usteer_add_nr_entry(si->node, &rn->node);
+	
+	int added_local_nodes = 0;
+	struct usteer_node* filtered_local[MAX_NODES];
+	avl_for_each_element(&local_nodes, node, avl){
+			if (added_local_nodes < MAX_NODES){
+				filtered_local[added_local_nodes] = node;
+				added_local_nodes++;
+			} else {
+				int lowest = -1, hi_ind = -1;
+				for(int i = 0; i < MAX_NODES; ++i){
+					if (filtered_local[i]->freq < lowest) {
+						lowest = filtered_local[i]->freq;
+						hi_ind = i;
+					}
+				}
+				if (lowest < node->freq) filtered_local[hi_ind] = node;
+			}
+	}
+	for(int i = 0; i < added_local_nodes; ++i) {
+		usteer_add_nr_entry(si->node, filtered_local[i]);
+	}
+
+	int added_remote_nodes = 0;
+	struct usteer_node* filtered_remote[MAX_NODES];
+	avl_for_each_element(&remote_nodes, rn, avl) {
+			if (added_remote_nodes < MAX_NODES){
+				filtered_remote[added_remote_nodes] = &rn->node;
+				added_remote_nodes++;
+			} else {
+				int lowest = -1, hi_ind = -1;
+				for(int i = 0; i < MAX_NODES; ++i){
+					if (filtered_remote[i]->freq < lowest) {
+						lowest = filtered_remote[i]->freq;
+						hi_ind = i;
+					}
+				}
+				if (lowest < node->freq) filtered_remote[hi_ind] = &rn->node;
+			}
+		}
+	for(int i = 0; i < added_remote_nodes; ++i) {
+		usteer_add_nr_entry(si->node, filtered_remote[i]);
+	}
+
 	blobmsg_close_array(&b, c);
 	return ubus_invoke(ubus_ctx, ln->obj_id, "wnm_disassoc_imminent", b.head, NULL, 0, 100);
 }
