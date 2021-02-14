@@ -83,11 +83,14 @@ void usteer_hearing_map_by_client(struct blob_buf *bm, struct sta_info *si) {
 		if (node)
 			blobmsg_add_string(bm, "node", usteer_node_name(node));
 
+		uint64_t diff_secs = (current_time - br->usteer_time) / 1000;
+		uint64_t ttl = config.beacon_report_invalide_timeout - diff_secs;
+
 		blobmsg_add_u16(bm, "rcpi", br->rcpi);
 		blobmsg_add_u16(bm, "rsni", br->rsni);
 		blobmsg_add_u16(bm, "op_class", br->op_class);
 		blobmsg_add_u16(bm, "channel", br->channel);
-		blobmsg_add_u64(bm, "time", br->usteer_time);
+		blobmsg_add_u64(bm, "time-to-live", ttl);
 		blobmsg_close_table(bm, _nr);
 	}
 	blobmsg_close_table(bm, _hm);
