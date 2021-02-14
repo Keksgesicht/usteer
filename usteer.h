@@ -204,7 +204,6 @@ struct beacon_report {
 	uint16_t rsni;
 	uint16_t op_class;
 	uint16_t channel;
-	uint64_t start_time;
 	uint64_t usteer_time;
 };
 

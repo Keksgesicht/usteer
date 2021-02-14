@@ -87,7 +87,7 @@ void usteer_hearing_map_by_client(struct blob_buf *bm, struct sta_info *si) {
 		blobmsg_add_u16(bm, "rsni", br->rsni);
 		blobmsg_add_u16(bm, "op_class", br->op_class);
 		blobmsg_add_u16(bm, "channel", br->channel);
-		blobmsg_add_u64(bm, "start_time", br->start_time);
+		blobmsg_add_u64(bm, "time", br->usteer_time);
 		blobmsg_close_table(bm, _nr);
 	}
 	blobmsg_close_table(bm, _hm);
@@ -165,8 +165,6 @@ enum {
 	BEACON_REP_RCPI,
 	BEACON_REP_RSNI,
 	BEACON_REP_BSSID,
-	BEACON_REP_DURATION,
-	BEACON_REP_START,
 	__BEACON_REP_MAX,
 };
 
@@ -177,7 +175,6 @@ static const struct blobmsg_policy beacon_rep_policy[__BEACON_REP_MAX] = {
 	[BEACON_REP_CHANNEL] = {.name = "channel", .type = BLOBMSG_TYPE_INT16},
 	[BEACON_REP_RCPI] = {.name = "rcpi", .type = BLOBMSG_TYPE_INT16},
 	[BEACON_REP_RSNI] = {.name = "rsni", .type = BLOBMSG_TYPE_INT16},
-	[BEACON_REP_START] = {.name = "start-time", .type = BLOBMSG_TYPE_INT64},
 };
 
 static uint8_t
@@ -259,14 +256,12 @@ void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg) 
 	br->rsni = blobmsg_get_u16(tb[BEACON_REP_RSNI]);
 	br->op_class = blobmsg_get_u16(tb[BEACON_REP_OP_CLASS]);
 	br->channel = blobmsg_get_u16(tb[BEACON_REP_CHANNEL]);
-	br->start_time = blobmsg_get_u64(tb[BEACON_REP_START]);
 	br->usteer_time = current_time; // beacon_report_invalide_timeout
 
 	uint64_t last_report_time = si->beacon_rqst.lastReportTime;
-	if (last_report_time != br->start_time) {
+	if (br->usteer_time - last_report_time > 1000)
 		si->beacon_rqst.failed_requests /= 2;
-		si->beacon_rqst.lastReportTime = br->start_time;
-	}
+	si->beacon_rqst.lastReportTime = br->usteer_time;
 
 	MSG(DEBUG, "received beacon-report {op-class=%d, channel=%d, rcpi=%d, rsni=%d, bssid=%s} on %s from %s",
 		br->op_class, br->channel, br->rcpi, br->rsni, bssid, ln->iface, address);
