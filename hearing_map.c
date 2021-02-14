@@ -73,14 +73,11 @@ usteer_beacon_report_delete(struct beacon_report *br, uint8_t *bssid)
 }
 
 void usteer_hearing_map_by_client(struct blob_buf *bm, struct sta_info *si) {
-	struct beacon_report *br, *tmp;
+	struct beacon_report *br;
 	void *_hm, *_nr;
 
 	_hm = blobmsg_open_table(bm, "hearing_map");
-	list_for_each_entry_safe(br, tmp, &si->beacon, sta_list) {
-		if (usteer_beacon_report_delete(br, NULL))
-			continue;
-
+	list_for_each_entry(br, &si->beacon, sta_list) {
 		_nr = blobmsg_open_table(bm, ether_ntoa((struct ether_addr *) br->bssid));
 		struct usteer_node *node = get_usteer_node_from_bssid(br->bssid);
 		if (node)
@@ -213,6 +210,10 @@ void usteer_beacon_request_check(struct sta_info *si) {
 					 (config.beacon_request_signal_modifier * (adj_signal / (1 + abs(adj_signal))));
 	if (ctime - br->lastRequestTime < dyn_freq)
 		return;
+
+	uint8_t bssid[6];
+	memset(bssid, 255, 6);
+	usteer_beacon_report_cleanup(si, bssid);
 
 	int freq = si->node->freq; // scanning the other band?
 	uint8_t mode = usteer_get_beacon_request_mode(si, freq);
