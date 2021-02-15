@@ -183,8 +183,15 @@ static const struct blobmsg_policy beacon_rep_policy[__BEACON_REP_MAX] = {
 static uint8_t
 usteer_get_beacon_request_mode(struct sta_info *si, int freq)
 {
-	int failed_requests = si->beacon_rqst.failed_requests++;
+	struct beacon_request *br = &si->beacon_rqst;
+	if (!br->band) {
+		long time_diff = br->lastReportTime - br->lastRequestTime;
+		if (0 < time_diff)
+			br->failed_requests /= 2;
+		br->failed_requests++;
+	}
 
+	int failed_requests = br->failed_requests;
 	if (freq < 4000) {
 		if (failed_requests < 3)
 			return 1;
@@ -270,10 +277,6 @@ void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg) 
 	br->op_class = blobmsg_get_u16(tb[BEACON_REP_OP_CLASS]);
 	br->channel = blobmsg_get_u16(tb[BEACON_REP_CHANNEL]);
 	br->usteer_time = current_time; // beacon_report_invalide_timeout
-
-	uint64_t last_report_time = si->beacon_rqst.lastReportTime;
-	if (br->usteer_time - last_report_time > 1000)
-		si->beacon_rqst.failed_requests /= 2;
 	si->beacon_rqst.lastReportTime = br->usteer_time;
 
 	MSG(DEBUG, "received beacon-report {op-class=%d, channel=%d, rcpi=%d, rsni=%d, bssid=%s} on %s from %s",
