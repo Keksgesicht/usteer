@@ -47,6 +47,7 @@ enum usteer_event_type {
 	EVENT_TYPE_PROBE,
 	EVENT_TYPE_ASSOC,
 	EVENT_TYPE_AUTH,
+	EVENT_TYPE_BEACON,
 	__EVENT_TYPE_MAX,
 };
 

@@ -81,7 +81,9 @@ usteer_handle_remove(struct ubus_context *ctx, struct ubus_subscriber *s,
 }
 
 static int
-usteer_handle_event_probe(struct ubus_object *obj, const char *method, struct blob_attr *msg)
+usteer_handle_event(struct ubus_context *ctx, struct ubus_object *obj,
+					struct ubus_request_data *req, const char *method,
+					struct blob_attr *msg)
 {
 	enum {
 		EVENT_ADDR,
@@ -119,6 +121,12 @@ usteer_handle_event_probe(struct ubus_object *obj, const char *method, struct bl
 
 	ln = container_of(obj, struct usteer_local_node, ev.obj);
 	node = &ln->node;
+
+	if (ev_type == EVENT_TYPE_BEACON) {
+		usteer_handle_event_beacon(ln, msg);
+		return 0;
+	}
+
 	blobmsg_parse(policy, __EVENT_MAX, tb, blob_data(msg), blob_len(msg));
 	if (!tb[EVENT_ADDR] || !tb[EVENT_FREQ])
 		return UBUS_STATUS_INVALID_ARGUMENT;
@@ -140,16 +148,6 @@ usteer_handle_event_probe(struct ubus_object *obj, const char *method, struct bl
 	    method, addr_str, signal, freq, ret ? "true" : "false");
 
 	return ret ? 0 : 17 /* WLAN_STATUS_AP_UNABLE_TO_HANDLE_NEW_STA */;
-}
-
-static int
-usteer_handle_event(struct ubus_context *ctx, struct ubus_object *obj,
-		   struct ubus_request_data *req, const char *method,
-		   struct blob_attr *msg)
-{
-	if (strncmp(method, "beacon-report", 12) == 0)
-		usteer_handle_event_beacon(obj, msg);
-	return usteer_handle_event_probe(obj, method, msg);
 }
 
 static void

@@ -245,8 +245,7 @@ void usteer_beacon_report_cleanup(struct sta_info *si, uint8_t *bssid) {
 		      : usteer_beacon_report_free(br);
 }
 
-void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg) {
-	struct usteer_local_node *ln = container_of(obj, struct usteer_local_node, ev.obj);
+void usteer_handle_event_beacon(struct usteer_local_node *ln, struct blob_attr *msg) {
 	struct usteer_node *node = &ln->node;
 	struct blob_attr *tb[__BEACON_REP_MAX];
 	struct beacon_report *br;

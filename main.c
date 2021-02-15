@@ -33,6 +33,7 @@ const char * const event_types[__EVENT_TYPE_MAX] = {
 	[EVENT_TYPE_PROBE] = "probe",
 	[EVENT_TYPE_AUTH] = "auth",
 	[EVENT_TYPE_ASSOC] = "assoc",
+	[EVENT_TYPE_BEACON] = "beacon-report",
 };
 
 void debug_msg(int level, const char *func, int line, const char *format, ...)
