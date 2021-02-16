@@ -295,6 +295,9 @@ void config_get_interfaces(struct blob_buf *buf);
 void config_set_node_up_script(struct blob_attr *data);
 void config_get_node_up_script(struct blob_buf *buf);
 
+void config_set_ssid(struct blob_attr *data);
+void config_get_ssid(struct blob_buf *buf);
+
 int usteer_interface_init(void);
 void usteer_interface_add(const char *name);
 void usteer_sta_node_cleanup(struct usteer_node *node);
