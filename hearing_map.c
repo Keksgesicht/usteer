@@ -33,7 +33,7 @@
 
 static struct blob_buf b;
 
-static struct usteer_node*
+struct usteer_node*
 get_usteer_node_from_bssid(uint8_t *bssid)
 {
 	struct usteer_node *node;
