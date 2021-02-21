@@ -40,6 +40,8 @@ struct beacon_report {
 int getChannelFromFreq(int freq);
 int getOPClassFromChannel(int channel);
 
+struct usteer_node* get_usteer_node_from_bssid(uint8_t *bssid);
+
 void usteer_ubus_hearing_map(struct blob_buf *bm, struct sta_info *si);
 void usteer_beacon_request_check(struct sta_info *si);
 void usteer_beacon_report_cleanup(struct sta_info *si, uint8_t *bssid);
