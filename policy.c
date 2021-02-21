@@ -187,7 +187,7 @@ usteer_check_request(struct sta_info *si, enum usteer_event_type type)
 }
 
 uint64_t
-usteer_local_node_active_bits(struct sta_info *si)
+usteer_get_client_active_bits(struct sta_info *si)
 {
 	struct sta_active_bytes active_bytes = si->active_bytes;
 	uint64_t rx_delta;
@@ -201,7 +201,7 @@ usteer_local_node_active_bits(struct sta_info *si)
 static bool
 is_active_client(struct sta_info *si)
 {
-	uint64_t client_active_ratio = usteer_local_node_active_bits(si);
+	uint64_t client_active_ratio = usteer_get_client_active_bits(si);
 	if (client_active_ratio >= config.kick_client_active_bits) {
 		MSG_T("load_kick_active",
 			  "client "MAC_ADDR_FMT" is still active (config=%llu) (real=%llu)",
