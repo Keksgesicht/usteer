@@ -184,7 +184,7 @@ static uint8_t
 usteer_get_beacon_request_mode(struct sta_info *si, int freq)
 {
 	struct beacon_request *br = &si->beacon_request;
-	if (!br->band) {
+	if (si->node->freq == freq) {
 		long time_diff = br->lastReportTime - br->lastRequestTime;
 		if (0 < time_diff)
 			br->failed_requests /= 2;
@@ -204,10 +204,34 @@ usteer_get_beacon_request_mode(struct sta_info *si, int freq)
 	return 2;
 }
 
+static inline int
+usteer_beacon_request_next_band(struct sta_info *si, int freq)
+{
+	struct usteer_node *node;
+	bool band_already_scanned = true;
+
+	/*
+	 * search for next band that was not used in this scan request
+	 * assums that no two local_nodes are using the same channel/frequency
+	 */
+	avl_for_each_element(&local_nodes, node, avl) {
+		if (freq == node->freq) {
+			band_already_scanned = false;
+			continue;
+		}
+		if (band_already_scanned)
+			continue;
+		return node->freq;
+	}
+	node = avl_first_element(&local_nodes, node, avl); // last -> first (cycle list)
+	return node->freq;
+}
+
 void usteer_beacon_request_check(struct sta_info *si) {
-	struct beacon_request *br = &si->beacon_rqst;
+	struct beacon_request *br = &si->beacon_request;
 	struct usteer_node *node = si->node;
 	uint64_t ctime = current_time;
+	int freq = br->band;
 
 	/*
 	 * based on the current reception, determine a the frequency beacon requests are sent.
@@ -216,26 +240,22 @@ void usteer_beacon_request_check(struct sta_info *si) {
 	float adj_signal = (float) (si->signal + 60);
 	float dyn_freq = config.beacon_request_frequency +
 					 (config.beacon_request_signal_modifier * (adj_signal / (1 + abs(adj_signal))));
-	if (ctime - br->lastRequestTime < dyn_freq)
+	if (freq == node->freq && ctime - br->lastRequestTime < dyn_freq)
 		return;
 
-	int freq = si->node->freq;
-	if (!br->band) {
-		uint8_t bssid[6];
-		memset(bssid, 255, 6);
-		usteer_beacon_report_cleanup(si, bssid);
-	} else {
-		avl_for_each_element(&local_nodes, node, avl) {
-			if (node->freq == si->node->freq)
-				continue;
-			freq = node->freq;
-		}
-	}
-	uint8_t mode = usteer_get_beacon_request_mode(si, freq);
+	uint8_t mode = usteer_get_beacon_request_mode(si, freq); // run before lastRequestTime is renewed
 	usteer_beacon_request_send(si, freq, mode);
-	if (br->band)
-		br->lastRequestTime = current_time;
-	br->band = !br->band;
+
+	/* do only once in a scan row (multiple bands) */
+	if (br->band == node->freq) {
+		br->lastRequestTime = ctime;
+		uint8_t bssid[6];
+		memset(bssid, 255, 6); // FF:FF:FF:FF:FF:FF should be a invalid bssid
+		usteer_beacon_report_cleanup(si, bssid);
+	}
+
+	/* select next band for scanning */
+	br->band = usteer_beacon_request_next_band(si, freq);
 }
 
 void usteer_beacon_report_cleanup(struct sta_info *si, uint8_t *bssid) {

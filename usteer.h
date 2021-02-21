@@ -199,7 +199,7 @@ struct sta_active_bytes {
 };
 
 struct beacon_request {
-	bool band; // scan other bands
+	int band; // scan other bands
 	uint8_t failed_requests; // fallback methods
 	uint64_t lastReportTime;
 	uint64_t lastRequestTime;
