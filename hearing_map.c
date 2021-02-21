@@ -72,12 +72,12 @@ usteer_beacon_report_delete(struct beacon_report *br, uint8_t *bssid)
 	return false;
 }
 
-void usteer_hearing_map_by_client(struct blob_buf *bm, struct sta_info *si) {
+void usteer_ubus_hearing_map(struct blob_buf *bm, struct sta_info *si) {
 	struct beacon_report *br;
 	void *_hm, *_nr;
 
 	_hm = blobmsg_open_table(bm, "hearing_map");
-	list_for_each_entry(br, &si->beacon, sta_list) {
+	list_for_each_entry(br, &si->beacon_reports, sta_list) {
 		_nr = blobmsg_open_table(bm, ether_ntoa((struct ether_addr *) br->bssid));
 		struct usteer_node *node = get_usteer_node_from_bssid(br->bssid);
 		if (node)
@@ -183,7 +183,7 @@ static const struct blobmsg_policy beacon_rep_policy[__BEACON_REP_MAX] = {
 static uint8_t
 usteer_get_beacon_request_mode(struct sta_info *si, int freq)
 {
-	struct beacon_request *br = &si->beacon_rqst;
+	struct beacon_request *br = &si->beacon_request;
 	if (!br->band) {
 		long time_diff = br->lastReportTime - br->lastRequestTime;
 		if (0 < time_diff)
@@ -206,7 +206,7 @@ usteer_get_beacon_request_mode(struct sta_info *si, int freq)
 
 void usteer_beacon_request_check(struct sta_info *si) {
 	struct beacon_request *br = &si->beacon_rqst;
-	struct usteer_node *node;
+	struct usteer_node *node = si->node;
 	uint64_t ctime = current_time;
 
 	/*
@@ -240,12 +240,12 @@ void usteer_beacon_request_check(struct sta_info *si) {
 
 void usteer_beacon_report_cleanup(struct sta_info *si, uint8_t *bssid) {
 	struct beacon_report *br, *tmp;
-	list_for_each_entry_safe(br, tmp, &si->beacon, sta_list)
+	list_for_each_entry_safe(br, tmp, &si->beacon_reports, sta_list)
 		bssid ? usteer_beacon_report_delete(br, bssid)
 		      : usteer_beacon_report_free(br);
 }
 
-void usteer_handle_event_beacon(struct usteer_local_node *ln, struct blob_attr *msg) {
+void usteer_handle_event_beacon_report(struct usteer_local_node *ln, struct blob_attr *msg) {
 	struct usteer_node *node = &ln->node;
 	struct blob_attr *tb[__BEACON_REP_MAX];
 	struct beacon_report *br;
@@ -276,10 +276,10 @@ void usteer_handle_event_beacon(struct usteer_local_node *ln, struct blob_attr *
 	br->op_class = blobmsg_get_u16(tb[BEACON_REP_OP_CLASS]);
 	br->channel = blobmsg_get_u16(tb[BEACON_REP_CHANNEL]);
 	br->usteer_time = current_time; // beacon_report_invalide_timeout
-	si->beacon_rqst.lastReportTime = br->usteer_time;
+	si->beacon_request.lastReportTime = br->usteer_time;
 
 	MSG(DEBUG, "received beacon-report {op-class=%d, channel=%d, rcpi=%d, rsni=%d, bssid=%s} on %s from %s",
 		br->op_class, br->channel, br->rcpi, br->rsni, bssid, ln->iface, address);
 	usteer_beacon_report_cleanup(si, br->bssid);
-	list_add(&br->sta_list, &si->beacon);
+	list_add(&br->sta_list, &si->beacon_reports);
 }

@@ -30,6 +30,7 @@
 #include <libubox/uloop.h>
 #include <libubox/utils.h>
 #include <libubus.h>
+
 #include "utils.h"
 #include "timeout.h"
 
@@ -197,17 +198,6 @@ struct sta_active_bytes {
 	uint64_t last_time;
 };
 
-struct beacon_report {
-	struct list_head sta_list;
-	struct sta_info *address;
-	uint8_t bssid[6];
-	uint16_t rcpi;
-	uint16_t rsni;
-	uint16_t op_class;
-	uint16_t channel;
-	uint64_t usteer_time;
-};
-
 struct beacon_request {
 	bool band; // scan other bands
 	uint8_t failed_requests; // fallback methods
@@ -218,7 +208,7 @@ struct beacon_request {
 struct sta_info {
 	struct list_head list;
 	struct list_head node_list;
-	struct list_head beacon;
+	struct list_head beacon_reports;
 
 	struct usteer_node *node;
 	struct sta *sta;
@@ -238,7 +228,7 @@ struct sta_info {
 
 	int kick_count;
 	struct sta_active_bytes active_bytes;
-	struct beacon_request beacon_rqst;
+	struct beacon_request beacon_request;
 
 	uint8_t scan_band : 1;
 	uint8_t connected : 2;

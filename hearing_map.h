@@ -25,12 +25,24 @@
 
 #include "node.h"
 #include "usteer.h"
+
+struct beacon_report {
+	struct list_head sta_list;
+	struct sta_info *address;
+	uint8_t bssid[6];
+	uint16_t rcpi;
+	uint16_t rsni;
+	uint16_t op_class;
+	uint16_t channel;
+	uint64_t usteer_time;
+};
+
 int getChannelFromFreq(int freq);
 int getOPClassFromChannel(int channel);
 
-void usteer_hearing_map_by_client(struct blob_buf *bm, struct sta_info *si);
+void usteer_ubus_hearing_map(struct blob_buf *bm, struct sta_info *si);
 void usteer_beacon_request_check(struct sta_info *si);
 void usteer_beacon_report_cleanup(struct sta_info *si, uint8_t *bssid);
-void usteer_handle_event_beacon(struct usteer_local_node *ln, struct blob_attr *msg);
+void usteer_handle_event_beacon_report(struct usteer_local_node *ln, struct blob_attr *msg);
 
 #endif

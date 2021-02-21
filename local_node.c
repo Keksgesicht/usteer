@@ -82,8 +82,8 @@ usteer_handle_remove(struct ubus_context *ctx, struct ubus_subscriber *s,
 
 static int
 usteer_handle_event(struct ubus_context *ctx, struct ubus_object *obj,
-					struct ubus_request_data *req, const char *method,
-					struct blob_attr *msg)
+		            struct ubus_request_data *req, const char *method,
+                    struct blob_attr *msg)
 {
 	enum {
 		EVENT_ADDR,
@@ -123,7 +123,7 @@ usteer_handle_event(struct ubus_context *ctx, struct ubus_object *obj,
 	node = &ln->node;
 
 	if (ev_type == EVENT_TYPE_BEACON) {
-		usteer_handle_event_beacon(ln, msg);
+		usteer_handle_event_beacon_report(ln, msg);
 		return 0;
 	}
 

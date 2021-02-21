@@ -110,7 +110,7 @@ usteer_ubus_get_client_info(struct ubus_context *ctx, struct ubus_object *obj,
 		blobmsg_close_table(&b, _s);
 		if (si->node->type == NODE_TYPE_LOCAL && si->connected) {
 			blobmsg_add_u64(&b, "average_data_rate", usteer_local_node_active_bits(si));
-			usteer_hearing_map_by_client(&b, si);
+			usteer_ubus_hearing_map(&b, si);
 		}
 		blobmsg_close_table(&b, _cur_n);
 	}
