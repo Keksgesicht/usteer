@@ -297,6 +297,7 @@ void config_get_node_up_script(struct blob_buf *buf);
 
 void config_set_ssid(struct blob_attr *data);
 void config_get_ssid(struct blob_buf *buf);
+bool usteer_is_valid_ssid(const char *ssid);
 
 int usteer_interface_init(void);
 void usteer_interface_add(const char *name);

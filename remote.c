@@ -230,6 +230,8 @@ interface_add_node(struct interface *iface, const char *addr, unsigned long id, 
 		MSG(DEBUG, "Cannot parse node in message\n");
 		return;
 	}
+	if(!usteer_is_valid_ssid(msg.ssid))
+		return;
 
 	node = interface_get_node(addr, id, msg.name);
 	node->check = 0;
