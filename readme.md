@@ -50,5 +50,5 @@
 | `beacon_report_invalide_timeout` | Time until beacon report is invalidated | `200` |  `unsigned 32 bit int` |
 | `beacon_request_frequency` | How often the beacon requests are requested | `30000` |  `unsigned 32 bit int` |
 | `beacon_request_signal_modifier` | Determines the amount of variation in beacon request frequency based on current signal strength | `20000` |  `unsigned 32 bit int` |
-| `interfaces` | List of interfaces? | `?` |  `?` |
+| `network` | list of LAN interfaces for blobmsg exchange | `lan` |  `list of strings` |
 <br>
