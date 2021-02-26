@@ -47,4 +47,5 @@
 | `kick_client_active_bits` | How many bits per second (average over the time above) the client needs to transfer without getting kicked | `50000` | `unsigned 32 bit int` |
 | `beacon_report_invalide_timeout` | Beacon Reports older than this time in seconds will be removed | `300` | `unsigned 32 bit int` |
 | `node_up_script` | executable that is executed after the usteer node starts up. | `0` |  `string` |
+| `ssid` | usteer will only use hostapd instances with an ssid in this list. | `none/all` | `list of strings` |
 <br>
