@@ -408,7 +408,7 @@ int usteer_ubus_notify_client_disassoc(struct sta_info *si)
 		}
 	}
 
-	for(int i = 0; i < 3; i++){
+	for(int i = 0; i < added_local_nodes; i++){
 		usteer_add_nr_entry(si->node, get_usteer_node_from_bssid(filtered_local[i]->bssid));
 	}
 	
