@@ -304,6 +304,8 @@ void config_set_ssid(struct blob_attr *data) {
 		strncpy(uss->ssid, ssid, sizeof(uss->ssid));
 		list_add(&uss->list, config_ssid_list);
 	}
+
+	usteer_local_nodes_init(ubus_ctx);
 }
 
 void config_get_ssid(struct blob_buf *buf) {
