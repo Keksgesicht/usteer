@@ -319,8 +319,10 @@ void config_get_ssid(struct blob_buf *buf) {
 
 bool usteer_is_valid_ssid(const char *ssid) {
 	bool valid = true; // empty list -> all valid
-
 	struct usteer_ssid *uss;
+
+	if (!config_ssid_list)
+		return true;
 	list_for_each_entry(uss, config_ssid_list, list) {
 		if (strncmp(uss->ssid, ssid, sizeof(uss->ssid)) == 0)
 			return true;

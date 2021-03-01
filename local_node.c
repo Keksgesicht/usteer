@@ -322,6 +322,11 @@ usteer_local_node_rrm_nr_cb(struct ubus_request *req, int type, struct blob_attr
 		uint8_t *bssid = (uint8_t *) ether_aton(blobmsg_get_string(ba[0]));
 		memcpy(ln->node.bssid, bssid, sizeof(ln->node.bssid));
 	}
+	if(ba[1]) {
+		char *ssid = blobmsg_get_string(ba[1]);
+		if (!usteer_is_valid_ssid(ssid))
+			usteer_free_node(ubus_ctx, ln);
+	}
 }
 
 static void
