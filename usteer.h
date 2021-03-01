@@ -136,6 +136,8 @@ struct usteer_config {
 	uint32_t band_steering_threshold;
 	uint32_t load_balancing_threshold;
 
+	uint32_t vendor_update_interval;
+
 	uint32_t remote_update_interval;
 	uint32_t remote_node_timeout;
 

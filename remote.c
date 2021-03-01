@@ -40,6 +40,7 @@ static uint32_t local_id;
 static struct uloop_fd remote_fd;
 static struct uloop_timeout remote_timer;
 static struct uloop_timeout reload_timer;
+static struct uloop_timeout vendor_timer;
 
 static struct blob_buf buf;
 static uint32_t msg_seq;
@@ -547,6 +548,37 @@ usteer_reload_timer(struct uloop_timeout *t)
 	uloop_fd_add(&remote_fd, ULOOP_READ);
 }
 
+static void
+usteer_vendor_get() {
+	blob_buf_init(&buf, 0);
+}
+
+static void
+usteer_vendor_set()
+{
+	struct usteer_local_node *ln;
+	struct usteer_node *node;
+
+	usteer_vendor_get();
+	avl_for_each_element(&local_nodes, node, avl) {
+		ln = container_of(node, struct usteer_local_node, node);
+		ubus_invoke(ubus_ctx, ln->obj_id, "set_vendor_elements", buf.head, NULL, 0, 100);
+	}
+}
+
+static void
+usteer_vendor_update_timer(struct uloop_timeout *t)
+{
+	MSG_T("vendor_update_interval", "start vendor update (interval=%u)\n",
+		  config.vendor_update_interval);
+
+	usteer_update_time();
+	uloop_timeout_set(t, config.vendor_update_interval);
+
+	usteer_vendor_set();
+}
+
+
 int usteer_interface_init(void)
 {
 	if (usteer_init_local_id())
@@ -557,6 +589,9 @@ int usteer_interface_init(void)
 
 	reload_timer.cb = usteer_reload_timer;
 	reload_timer.cb(&reload_timer);
+
+	vendor_timer.cb = usteer_vendor_update_timer;
+	vendor_timer.cb(&vendor_timer);
 
 	return 0;
 }
