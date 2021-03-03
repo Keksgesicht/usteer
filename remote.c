@@ -21,6 +21,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <net/if.h>
+#include <ifaddrs.h>
 #include <arpa/inet.h>
 #ifdef linux
 #include <netinet/ether.h>
@@ -28,10 +29,10 @@
 #include <errno.h>
 #include <unistd.h>
 
-
 #include <libubox/vlist.h>
 #include <libubox/avl-cmp.h>
 #include <libubox/usock.h>
+
 #include "usteer.h"
 #include "remote.h"
 #include "node.h"
@@ -548,18 +549,48 @@ usteer_reload_timer(struct uloop_timeout *t)
 	uloop_fd_add(&remote_fd, ULOOP_READ);
 }
 
-static void
-usteer_vendor_get() {
+static inline bool
+usteer_vendor_get()
+{
+	struct ifaddrs *ifaddr, *ifa;
+	char addr_ipv6[16];
+	int elements = 0;
+
+	if (getifaddrs(&ifaddr) < 0) {
+		MSG(DEBUG, "vendor_update_interval: %s", "getifaddrs");
+		return false;
+	}
+
 	blob_buf_init(&buf, 0);
+	for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+		if (ifa->ifa_addr == NULL)
+			continue;
+
+		unsigned int ifindex = if_nametoindex(ifa->ifa_name);
+		if (!interface_find_by_ifindex(ifindex))
+			continue;
+		
+		if (ifa->ifa_addr->sa_family == AF_INET6) {
+			struct sockaddr_in6 *sin = (struct sockaddr_in6 *) ifa->ifa_addr;
+			memcpy(addr_ipv6, &sin->sin6_addr, sizeof(addr_ipv6));
+			blobmsg_add_string(&buf, NULL, addr_ipv6);
+
+			elements++;
+		}
+	}
+	freeifaddrs(ifaddr);
+	return elements;
 }
 
-static void
+static inline void
 usteer_vendor_set()
 {
 	struct usteer_local_node *ln;
 	struct usteer_node *node;
 
-	usteer_vendor_get();
+	if (!usteer_vendor_get())
+		return;
+
 	avl_for_each_element(&local_nodes, node, avl) {
 		ln = container_of(node, struct usteer_local_node, node);
 		ubus_invoke(ubus_ctx, ln->obj_id, "set_vendor_elements", buf.head, NULL, 0, 100);
