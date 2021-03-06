@@ -2,3 +2,4 @@ config usteer
 	option 'network' 'lan'
 	option 'syslog' '1'
 	option 'debug_level' '2'
+	list ssid
