@@ -37,7 +37,8 @@ struct usteer_node*
 get_usteer_node_from_bssid(uint8_t *bssid)
 {
 	struct usteer_node *node;
-	avl_for_each_element(&local_nodes, node, avl) {
+	avl_for_each_element(&local_nodes, node, avl) 
+	{
 		if (memcmp(&node->bssid, bssid, 6) == 0)
 			return node;
 	}
@@ -72,7 +73,8 @@ usteer_beacon_report_delete(struct beacon_report *br, uint8_t *bssid)
 	return false;
 }
 
-void usteer_ubus_hearing_map(struct blob_buf *bm, struct sta_info *si) {
+void usteer_ubus_hearing_map(struct blob_buf *bm, struct sta_info *si) 
+{
 	struct beacon_report *br;
 	void *_hm, *_nr;
 
@@ -101,8 +103,8 @@ usteer_beacon_request_send(struct sta_info * si, int freq, uint8_t mode)
 {
 	static struct ubus_request req;
 	struct usteer_local_node *ln = container_of(si->node, struct usteer_local_node, node);
-	int channel = getChannelFromFreq(freq);
-	int opClass = getOPClassFromChannel(channel);
+	int channel = get_channel_from_freq(freq);
+	int opClass = get_op_class_from_channel(channel);
 	
 	blob_buf_init(&b, 0);
 	blobmsg_printf(&b, "addr", MAC_ADDR_FMT, MAC_ADDR_DATA(si->sta->addr));
@@ -118,7 +120,8 @@ usteer_beacon_request_send(struct sta_info * si, int freq, uint8_t mode)
 		channel, mode, ln->iface, MAC_ADDR_DATA(si->sta->addr));
 }
 
-int getChannelFromFreq(int freq) {
+int get_channel_from_freq(int freq) 
+{
 	/* see 802.11-2007 17.3.8.3.2 and Annex J */
 	if (freq == 2484)
 		return 14;
@@ -126,7 +129,7 @@ int getChannelFromFreq(int freq) {
 		return (freq - 2407) / 5;
 	else if (freq >= 4910 && freq <= 4980)
 		return (freq - 4000) / 5;
-	else if (freq <= 45000) /* DMG band lower limit */
+	else if (freq <= 45000)
 		return (freq - 5000) / 5;
 	else if (freq >= 58320 && freq <= 64800)
 		return (freq - 56160) / 2160;
@@ -134,31 +137,18 @@ int getChannelFromFreq(int freq) {
 		return 0;
 }
 
-int getOPClassFromChannel(int channel) {
-	if (channel >= 36 &&
-		channel <= 48 ){
-
-		return 115; // 1 in nicht global
-	}
-	else if(channel >= 52 &&
-			channel <= 64 ){
-
-		return 118; // 2
-	}
-	else if(
-			channel >= 100 &&
-			channel <= 140 ){
-
-		return 121; // 3
-	}
-	else if(channel >= 1  &&
-			channel <= 13 ){
-
-		return 81; // 4
-	}
-	else{
-		return 0; // z.B channel 14 nicht in dokument
-	}
+int get_op_class_from_channel(int channel) 
+{
+	if (channel >= 36 && channel <= 48 )
+		return 115;
+	else if(channel >= 52 && channel <= 64 )
+		return 118;
+	else if(channel >= 100 && channel <= 140 )
+		return 121;
+	else if(channel >= 1 && channel <= 13 )
+		return 81;
+	else
+		return 0;
 }
 
 enum {
@@ -227,7 +217,8 @@ usteer_beacon_request_next_band(struct sta_info *si, int freq)
 	return node->freq;
 }
 
-void usteer_beacon_request_check(struct sta_info *si) {
+void usteer_beacon_request_check(struct sta_info *si) 
+{
 	struct beacon_request *br = &si->beacon_request;
 	struct usteer_node *node = si->node;
 	uint64_t ctime = current_time;
@@ -258,14 +249,16 @@ void usteer_beacon_request_check(struct sta_info *si) {
 	br->band = usteer_beacon_request_next_band(si, freq);
 }
 
-void usteer_beacon_report_cleanup(struct sta_info *si, uint8_t *bssid) {
+void usteer_beacon_report_cleanup(struct sta_info *si, uint8_t *bssid) 
+{
 	struct beacon_report *br, *tmp;
 	list_for_each_entry_safe(br, tmp, &si->beacon_reports, sta_list)
 		bssid ? usteer_beacon_report_delete(br, bssid)
 		      : usteer_beacon_report_free(br);
 }
 
-void usteer_handle_event_beacon_report(struct usteer_local_node *ln, struct blob_attr *msg) {
+void usteer_handle_event_beacon_report(struct usteer_local_node *ln, struct blob_attr *msg) 
+{
 	struct usteer_node *node = &ln->node;
 	struct blob_attr *tb[__BEACON_REP_MAX];
 	struct beacon_report *br;

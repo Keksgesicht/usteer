@@ -37,8 +37,8 @@ struct beacon_report {
 	uint64_t usteer_time;
 };
 
-int getChannelFromFreq(int freq);
-int getOPClassFromChannel(int channel);
+int get_channel_from_freq(int freq);
+int get_op_class_from_channel(int channel);
 
 struct usteer_node* get_usteer_node_from_bssid(uint8_t *bssid);
 
