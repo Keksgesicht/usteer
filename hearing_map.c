@@ -33,11 +33,12 @@
 
 static struct blob_buf b;
 
-static struct usteer_node*
+struct usteer_node*
 get_usteer_node_from_bssid(uint8_t *bssid)
 {
 	struct usteer_node *node;
-	avl_for_each_element(&local_nodes, node, avl) {
+	avl_for_each_element(&local_nodes, node, avl) 
+	{
 		if (memcmp(&node->bssid, bssid, 6) == 0)
 			return node;
 	}
@@ -72,25 +73,26 @@ usteer_beacon_report_delete(struct beacon_report *br, uint8_t *bssid)
 	return false;
 }
 
-void usteer_hearing_map_by_client(struct blob_buf *bm, struct sta_info *si) {
-	struct beacon_report *br, *tmp;
+void usteer_ubus_hearing_map(struct blob_buf *bm, struct sta_info *si) 
+{
+	struct beacon_report *br;
 	void *_hm, *_nr;
 
 	_hm = blobmsg_open_table(bm, "hearing_map");
-	list_for_each_entry_safe(br, tmp, &si->beacon, sta_list) {
-		if (usteer_beacon_report_delete(br, NULL))
-			continue;
-
+	list_for_each_entry(br, &si->beacon_reports, sta_list) {
 		_nr = blobmsg_open_table(bm, ether_ntoa((struct ether_addr *) br->bssid));
 		struct usteer_node *node = get_usteer_node_from_bssid(br->bssid);
 		if (node)
 			blobmsg_add_string(bm, "node", usteer_node_name(node));
 
+		uint64_t diff_secs = (current_time - br->usteer_time) / 1000;
+		uint64_t ttl = config.beacon_report_invalide_timeout - diff_secs;
+
 		blobmsg_add_u16(bm, "rcpi", br->rcpi);
 		blobmsg_add_u16(bm, "rsni", br->rsni);
 		blobmsg_add_u16(bm, "op_class", br->op_class);
 		blobmsg_add_u16(bm, "channel", br->channel);
-		blobmsg_add_u64(bm, "start_time", br->start_time);
+		blobmsg_add_u64(bm, "time-to-live", ttl);
 		blobmsg_close_table(bm, _nr);
 	}
 	blobmsg_close_table(bm, _hm);
@@ -101,8 +103,8 @@ usteer_beacon_request_send(struct sta_info * si, int freq, uint8_t mode)
 {
 	static struct ubus_request req;
 	struct usteer_local_node *ln = container_of(si->node, struct usteer_local_node, node);
-	int channel = getChannelFromFreq(freq);
-	int opClass = getOPClassFromChannel(channel);
+	int channel = get_channel_from_freq(freq);
+	int opClass = get_op_class_from_channel(channel);
 	
 	blob_buf_init(&b, 0);
 	blobmsg_printf(&b, "addr", MAC_ADDR_FMT, MAC_ADDR_DATA(si->sta->addr));
@@ -118,7 +120,8 @@ usteer_beacon_request_send(struct sta_info * si, int freq, uint8_t mode)
 		channel, mode, ln->iface, MAC_ADDR_DATA(si->sta->addr));
 }
 
-int getChannelFromFreq(int freq) {
+int get_channel_from_freq(int freq) 
+{
 	/* see 802.11-2007 17.3.8.3.2 and Annex J */
 	if (freq == 2484)
 		return 14;
@@ -126,7 +129,7 @@ int getChannelFromFreq(int freq) {
 		return (freq - 2407) / 5;
 	else if (freq >= 4910 && freq <= 4980)
 		return (freq - 4000) / 5;
-	else if (freq <= 45000) /* DMG band lower limit */
+	else if (freq <= 45000)
 		return (freq - 5000) / 5;
 	else if (freq >= 58320 && freq <= 64800)
 		return (freq - 56160) / 2160;
@@ -134,31 +137,18 @@ int getChannelFromFreq(int freq) {
 		return 0;
 }
 
-int getOPClassFromChannel(int channel) {
-	if (channel >= 36 &&
-		channel <= 48 ){
-
-		return 115; // 1 in nicht global
-	}
-	else if(channel >= 52 &&
-			channel <= 64 ){
-
-		return 118; // 2
-	}
-	else if(
-			channel >= 100 &&
-			channel <= 140 ){
-
-		return 121; // 3
-	}
-	else if(channel >= 1  &&
-			channel <= 13 ){
-
-		return 81; // 4
-	}
-	else{
-		return 0; // z.B channel 14 nicht in dokument
-	}
+int get_op_class_from_channel(int channel) 
+{
+	if (channel >= 36 && channel <= 48 )
+		return 115;
+	else if(channel >= 52 && channel <= 64 )
+		return 118;
+	else if(channel >= 100 && channel <= 140 )
+		return 121;
+	else if(channel >= 1 && channel <= 13 )
+		return 81;
+	else
+		return 0;
 }
 
 enum {
@@ -168,8 +158,6 @@ enum {
 	BEACON_REP_RCPI,
 	BEACON_REP_RSNI,
 	BEACON_REP_BSSID,
-	BEACON_REP_DURATION,
-	BEACON_REP_START,
 	__BEACON_REP_MAX,
 };
 
@@ -180,14 +168,20 @@ static const struct blobmsg_policy beacon_rep_policy[__BEACON_REP_MAX] = {
 	[BEACON_REP_CHANNEL] = {.name = "channel", .type = BLOBMSG_TYPE_INT16},
 	[BEACON_REP_RCPI] = {.name = "rcpi", .type = BLOBMSG_TYPE_INT16},
 	[BEACON_REP_RSNI] = {.name = "rsni", .type = BLOBMSG_TYPE_INT16},
-	[BEACON_REP_START] = {.name = "start-time", .type = BLOBMSG_TYPE_INT64},
 };
 
 static uint8_t
 usteer_get_beacon_request_mode(struct sta_info *si, int freq)
 {
-	int failed_requests = si->beacon_rqst.failed_requests++;
+	struct beacon_request *br = &si->beacon_request;
+	if (si->node->freq == freq) {
+		long time_diff = br->lastReportTime - br->lastRequestTime;
+		if (0 < time_diff)
+			br->failed_requests /= 2;
+		br->failed_requests++;
+	}
 
+	int failed_requests = br->failed_requests;
 	if (freq < 4000) {
 		if (failed_requests < 3)
 			return 1;
@@ -200,9 +194,35 @@ usteer_get_beacon_request_mode(struct sta_info *si, int freq)
 	return 2;
 }
 
-void usteer_beacon_request_check(struct sta_info *si) {
-	struct beacon_request *br = &si->beacon_rqst;
+static inline int
+usteer_beacon_request_next_band(struct sta_info *si, int freq)
+{
+	struct usteer_node *node;
+	bool band_already_scanned = true;
+
+	/*
+	 * search for next band that was not used in this scan request
+	 * assums that no two local_nodes are using the same channel/frequency
+	 */
+	avl_for_each_element(&local_nodes, node, avl) {
+		if (freq == node->freq) {
+			band_already_scanned = false;
+			continue;
+		}
+		if (band_already_scanned)
+			continue;
+		return node->freq;
+	}
+	node = avl_first_element(&local_nodes, node, avl); // last -> first (cycle list)
+	return node->freq;
+}
+
+void usteer_beacon_request_check(struct sta_info *si) 
+{
+	struct beacon_request *br = &si->beacon_request;
+	struct usteer_node *node = si->node;
 	uint64_t ctime = current_time;
+	int freq = br->band;
 
 	/*
 	 * based on the current reception, determine a the frequency beacon requests are sent.
@@ -211,24 +231,34 @@ void usteer_beacon_request_check(struct sta_info *si) {
 	float adj_signal = (float) (si->signal + 60);
 	float dyn_freq = config.beacon_request_frequency +
 					 (config.beacon_request_signal_modifier * (adj_signal / (1 + abs(adj_signal))));
-	if (ctime - br->lastRequestTime < dyn_freq)
+	if (freq == node->freq && ctime - br->lastRequestTime < dyn_freq)
 		return;
 
-	int freq = si->node->freq; // scanning the other band?
-	uint8_t mode = usteer_get_beacon_request_mode(si, freq);
+	uint8_t mode = usteer_get_beacon_request_mode(si, freq); // run before lastRequestTime is renewed
 	usteer_beacon_request_send(si, freq, mode);
-	br->lastRequestTime = ctime;
+
+	/* do only once in a scan row (multiple bands) */
+	if (br->band == node->freq) {
+		br->lastRequestTime = ctime;
+		uint8_t bssid[6];
+		memset(bssid, 255, 6); // FF:FF:FF:FF:FF:FF should be a invalid bssid
+		usteer_beacon_report_cleanup(si, bssid);
+	}
+
+	/* select next band for scanning */
+	br->band = usteer_beacon_request_next_band(si, freq);
 }
 
-void usteer_beacon_report_cleanup(struct sta_info *si, uint8_t *bssid) {
+void usteer_beacon_report_cleanup(struct sta_info *si, uint8_t *bssid) 
+{
 	struct beacon_report *br, *tmp;
-	list_for_each_entry_safe(br, tmp, &si->beacon, sta_list)
+	list_for_each_entry_safe(br, tmp, &si->beacon_reports, sta_list)
 		bssid ? usteer_beacon_report_delete(br, bssid)
 		      : usteer_beacon_report_free(br);
 }
 
-void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg) {
-	struct usteer_local_node *ln = container_of(obj, struct usteer_local_node, ev.obj);
+void usteer_handle_event_beacon_report(struct usteer_local_node *ln, struct blob_attr *msg) 
+{
 	struct usteer_node *node = &ln->node;
 	struct blob_attr *tb[__BEACON_REP_MAX];
 	struct beacon_report *br;
@@ -258,17 +288,11 @@ void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg) 
 	br->rsni = blobmsg_get_u16(tb[BEACON_REP_RSNI]);
 	br->op_class = blobmsg_get_u16(tb[BEACON_REP_OP_CLASS]);
 	br->channel = blobmsg_get_u16(tb[BEACON_REP_CHANNEL]);
-	br->start_time = blobmsg_get_u64(tb[BEACON_REP_START]);
 	br->usteer_time = current_time; // beacon_report_invalide_timeout
-
-	uint64_t last_report_time = si->beacon_rqst.lastReportTime;
-	if (last_report_time != br->start_time) {
-		si->beacon_rqst.failed_requests /= 2;
-		si->beacon_rqst.lastReportTime = br->start_time;
-	}
+	si->beacon_request.lastReportTime = br->usteer_time;
 
 	MSG(DEBUG, "received beacon-report {op-class=%d, channel=%d, rcpi=%d, rsni=%d, bssid=%s} on %s from %s",
 		br->op_class, br->channel, br->rcpi, br->rsni, bssid, ln->iface, address);
 	usteer_beacon_report_cleanup(si, br->bssid);
-	list_add(&br->sta_list, &si->beacon);
+	list_add(&br->sta_list, &si->beacon_reports);
 }

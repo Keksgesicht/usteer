@@ -45,7 +45,11 @@
 | `load_kick_reason_code` | The reason why a client was load-kicked. Default is WLAN_REASON_DISASSOC_AP_BUSY (5) | `5` |  `802.11-2016 Table 9-45 Reason codes ` |
 | `kick_client_active_sec` | The time interval in which the client transfered bits are measured. | `30` | `unsigned 32 bit int` |
 | `kick_client_active_bits` | How many bits per second (average over the time above) the client needs to transfer without getting kicked | `50000` | `unsigned 32 bit int` |
-| `beacon_report_invalide_timeout` | Beacon Reports older than this time in seconds will be removed | `300` | `unsigned 32 bit int` |
 | `node_up_script` | executable that is executed after the usteer node starts up. | `0` |  `string` |
+| `remote_disabled` | Boolean varaiables that determines if the AP should send and receive messages | `false` |  `boolean` |
+| `beacon_report_invalide_timeout` | Time until beacon report is invalidated | `200` |  `unsigned 32 bit int` |
+| `beacon_request_frequency` | How often the beacon requests are requested | `30000` |  `unsigned 32 bit int` |
+| `beacon_request_signal_modifier` | Determines the amount of variation in beacon request frequency based on current signal strength | `20000` |  `unsigned 32 bit int` |
+| `network` | list of LAN interfaces for blobmsg exchange | `lan` |  `list of strings` |
 | `ssid` | usteer will only use hostapd instances with an ssid in this list. | `none/all` | `list of strings` |
 <br>

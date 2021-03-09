@@ -25,14 +25,26 @@
 
 #include "node.h"
 #include "usteer.h"
-int getChannelFromFreq(int freq);
-int getOPClassFromChannel(int channel);
 
-void usteer_hearing_map_by_client(struct blob_buf *bm, struct sta_info *si);
+struct beacon_report {
+	struct list_head sta_list;
+	struct sta_info *address;
+	uint8_t bssid[6];
+	uint16_t rcpi;
+	uint16_t rsni;
+	uint16_t op_class;
+	uint16_t channel;
+	uint64_t usteer_time;
+};
+
+int get_channel_from_freq(int freq);
+int get_op_class_from_channel(int channel);
+
+struct usteer_node* get_usteer_node_from_bssid(uint8_t *bssid);
+
+void usteer_ubus_hearing_map(struct blob_buf *bm, struct sta_info *si);
 void usteer_beacon_request_check(struct sta_info *si);
 void usteer_beacon_report_cleanup(struct sta_info *si, uint8_t *bssid);
-void usteer_handle_event_beacon(struct ubus_object *obj, struct blob_attr *msg);
-
-char *usteer_node_get_mac(struct usteer_node *node);
+void usteer_handle_event_beacon_report(struct usteer_local_node *ln, struct blob_attr *msg);
 
 #endif

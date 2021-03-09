@@ -30,6 +30,7 @@
 #include <libubox/uloop.h>
 #include <libubox/utils.h>
 #include <libubus.h>
+
 #include "utils.h"
 #include "timeout.h"
 
@@ -47,6 +48,7 @@ enum usteer_event_type {
 	EVENT_TYPE_PROBE,
 	EVENT_TYPE_ASSOC,
 	EVENT_TYPE_AUTH,
+	EVENT_TYPE_BEACON,
 	__EVENT_TYPE_MAX,
 };
 
@@ -198,19 +200,8 @@ struct sta_active_bytes {
 	uint64_t last_time;
 };
 
-struct beacon_report {
-	struct list_head sta_list;
-	struct sta_info *address;
-	uint8_t bssid[6];
-	uint16_t rcpi;
-	uint16_t rsni;
-	uint16_t op_class;
-	uint16_t channel;
-	uint64_t start_time;
-	uint64_t usteer_time;
-};
-
 struct beacon_request {
+	int band; // scan other bands
 	uint8_t failed_requests; // fallback methods
 	uint64_t lastReportTime;
 	uint64_t lastRequestTime;
@@ -219,7 +210,7 @@ struct beacon_request {
 struct sta_info {
 	struct list_head list;
 	struct list_head node_list;
-	struct list_head beacon;
+	struct list_head beacon_reports;
 
 	struct usteer_node *node;
 	struct sta *sta;
@@ -239,7 +230,7 @@ struct sta_info {
 
 	int kick_count;
 	struct sta_active_bytes active_bytes;
-	struct beacon_request beacon_rqst;
+	struct beacon_request beacon_request;
 
 	uint8_t scan_band : 1;
 	uint8_t connected : 2;
@@ -270,7 +261,7 @@ bool usteer_handle_sta_event(struct usteer_node *node, const uint8_t *addr,
 void usteer_local_nodes_init(struct ubus_context *ctx);
 void usteer_local_node_kick(struct usteer_local_node *ln);
 
-uint64_t usteer_local_node_active_bits(struct sta_info *si);
+uint64_t usteer_get_client_active_bits(struct sta_info *si);
 
 void usteer_ubus_init(struct ubus_context *ctx);
 void usteer_ubus_kick_client(struct sta_info *si);
