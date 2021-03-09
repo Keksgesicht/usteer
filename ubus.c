@@ -176,7 +176,7 @@ struct cfg_item {
 	_cfg(U32, beacon_request_frequency), \
 	_cfg(U32, beacon_request_signal_modifier), \
 	_cfg(ARRAY_CB, interfaces), \
-    _cfg(ARRAY_CB, ssid), \
+	_cfg(ARRAY_CB, ssid), \
 	_cfg(STRING_CB, node_up_script)
 
 enum cfg_items {
