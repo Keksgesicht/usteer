@@ -15,6 +15,11 @@
  *   Copyright (C) 2020 embedd.ch 
  *   Copyright (C) 2020 Felix Fietkau <nbd@nbd.name> 
  *   Copyright (C) 2020 John Crispin <john@phrozen.org> 
+ *
+ *   Copyright (C) 2021 Jan Braun <jan-kai@braun-bs.de>
+ *   Copyright (C) 2021 Nico Petermann <nico.petermann3@gmail.com>
+ *   Copyright (C) 2021 Tomas Duchac <tomasduchac@protonmail.ch>
+ * 	 Copyright (C) 2021 Philip Jonas Franz <R41Da@gmx.de>
  */
 
 #ifndef __APMGR_H
@@ -25,6 +30,7 @@
 #include <libubox/uloop.h>
 #include <libubox/utils.h>
 #include <libubus.h>
+
 #include "utils.h"
 #include "timeout.h"
 
@@ -42,6 +48,7 @@ enum usteer_event_type {
 	EVENT_TYPE_PROBE,
 	EVENT_TYPE_ASSOC,
 	EVENT_TYPE_AUTH,
+	EVENT_TYPE_BEACON,
 	__EVENT_TYPE_MAX,
 };
 
@@ -62,6 +69,7 @@ struct usteer_node {
 	struct blob_attr *rrm_nr;
 	struct blob_attr *script_data;
 	char ssid[33];
+	uint8_t bssid[6];
 
 	int freq;
 	int noise;
@@ -157,6 +165,10 @@ struct usteer_config {
 	uint32_t kick_client_active_sec;
 	uint32_t kick_client_active_bits;
 
+	uint32_t beacon_report_invalide_timeout;
+	uint32_t beacon_request_frequency;
+	uint32_t beacon_request_signal_modifier;
+
 	const char *node_up_script;
 };
 
@@ -186,9 +198,17 @@ struct sta_active_bytes {
 	uint64_t last_time;
 };
 
+struct beacon_request {
+	int band; // scan other bands
+	uint8_t failed_requests; // fallback methods
+	uint64_t lastReportTime;
+	uint64_t lastRequestTime;
+};
+
 struct sta_info {
 	struct list_head list;
 	struct list_head node_list;
+	struct list_head beacon_reports;
 
 	struct usteer_node *node;
 	struct sta *sta;
@@ -208,6 +228,7 @@ struct sta_info {
 
 	int kick_count;
 	struct sta_active_bytes active_bytes;
+	struct beacon_request beacon_request;
 
 	uint8_t scan_band : 1;
 	uint8_t connected : 2;
@@ -238,7 +259,7 @@ bool usteer_handle_sta_event(struct usteer_node *node, const uint8_t *addr,
 void usteer_local_nodes_init(struct ubus_context *ctx);
 void usteer_local_node_kick(struct usteer_local_node *ln);
 
-uint64_t usteer_local_node_active_bits(struct sta_info *si);
+uint64_t usteer_get_client_active_bits(struct sta_info *si);
 
 void usteer_ubus_init(struct ubus_context *ctx);
 void usteer_ubus_kick_client(struct sta_info *si);

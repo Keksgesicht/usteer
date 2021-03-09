@@ -26,6 +26,7 @@
 
 #include "usteer.h"
 #include "node.h"
+#include "hearing_map.h"
 
 static struct blob_buf b;
 
@@ -107,7 +108,10 @@ usteer_ubus_get_client_info(struct ubus_context *ctx, struct ubus_object *obj,
 		for (i = 0; i < __EVENT_TYPE_MAX; i++)
 			usteer_ubus_add_stats(&si->stats[EVENT_TYPE_PROBE], event_types[i]);
 		blobmsg_close_table(&b, _s);
-		blobmsg_add_u64(&b, "average_data_rate", usteer_local_node_active_bits(si));
+		if (si->node->type == NODE_TYPE_LOCAL && si->connected) {
+			blobmsg_add_u64(&b, "average_data_rate", usteer_get_client_active_bits(si));
+			usteer_ubus_hearing_map(&b, si);
+		}
 		blobmsg_close_table(&b, _cur_n);
 	}
 	blobmsg_close_table(&b, _n);
@@ -166,7 +170,10 @@ struct cfg_item {
 	_cfg(U32, load_kick_min_clients), \
 	_cfg(U32, load_kick_reason_code), \
 	_cfg(U32, kick_client_active_sec), \
-    _cfg(U32, kick_client_active_bits), \
+	_cfg(U32, kick_client_active_bits), \
+	_cfg(U32, beacon_report_invalide_timeout), \
+	_cfg(U32, beacon_request_frequency), \
+	_cfg(U32, beacon_request_signal_modifier), \
 	_cfg(ARRAY_CB, interfaces), \
 	_cfg(STRING_CB, node_up_script)
 
@@ -373,11 +380,50 @@ int usteer_ubus_notify_client_disassoc(struct sta_info *si)
 	blobmsg_printf(&b, "addr", MAC_ADDR_FMT, MAC_ADDR_DATA(si->sta->addr));
 	blobmsg_add_u32(&b, "duration", config.roam_kick_delay);
 	c = blobmsg_open_array(&b, "neighbors");
-	avl_for_each_element(&local_nodes, node, avl)
-		usteer_add_nr_entry(si->node, node);
-	avl_for_each_element(&remote_nodes, rn, avl)
-		usteer_add_nr_entry(si->node, &rn->node);
+	
+	struct beacon_report* filtered_local[3];
+
+	struct beacon_report *br;   
+	int added_local_nodes = 0;
+	
+	list_for_each_entry(br, &si->beacon_reports, sta_list) {
+    	struct usteer_node *node = get_usteer_node_from_bssid(br->bssid); 
+    	if (!node) continue; 
+		                                           
+    	if(added_local_nodes < 3){
+			filtered_local[added_local_nodes] = br;
+			added_local_nodes++;
+		}else{
+			u_int16_t lowest = filtered_local[0]->rcpi;
+			int index = 0;
+			for(int j = 1; j < 3; ++j){
+				if(filtered_local[j]->rcpi < lowest){
+					lowest = filtered_local[j]->rcpi;
+					index = j;
+				}
+			}
+			if(br->rsni > lowest){
+				filtered_local[index] = br; 
+			}
+		}
+	}
+
+	for(int i = 0; i < added_local_nodes; i++){
+		usteer_add_nr_entry(si->node, get_usteer_node_from_bssid(filtered_local[i]->bssid));
+	}
+	
+	if(!added_local_nodes){
+		avl_for_each_element(&local_nodes, node, avl){		
+			usteer_add_nr_entry(si->node, node);
+		}
+
+		avl_for_each_element(&remote_nodes, rn, avl) {
+			usteer_add_nr_entry(si->node, &rn->node);
+		}
+	}
+	
 	blobmsg_close_array(&b, c);
+
 	return ubus_invoke(ubus_ctx, ln->obj_id, "wnm_disassoc_imminent", b.head, NULL, 0, 100);
 }
 

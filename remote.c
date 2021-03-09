@@ -22,8 +22,12 @@
 #include <netinet/in.h>
 #include <net/if.h>
 #include <arpa/inet.h>
+#ifdef linux
+#include <netinet/ether.h>
+#endif
 #include <errno.h>
 #include <unistd.h>
+
 
 #include <libubox/vlist.h>
 #include <libubox/avl-cmp.h>
@@ -239,6 +243,9 @@ interface_add_node(struct interface *iface, const char *addr, unsigned long id, 
 	usteer_node_set_blob(&node->node.rrm_nr, msg.rrm_nr);
 	usteer_node_set_blob(&node->node.script_data, msg.script_data);
 
+	uint8_t *bssid = (uint8_t *) ether_aton(msg.bssid);
+	memcpy(node->node.bssid, bssid, sizeof(node->node.bssid));
+
 	blob_for_each_attr(cur, msg.stations, rem)
 		interface_add_station(node, cur);
 }
@@ -393,6 +400,7 @@ static void usteer_send_node(struct usteer_node *node, struct sta_info *sta)
 
 	blob_put_string(&buf, APMSG_NODE_NAME, usteer_node_name(node));
 	blob_put_string(&buf, APMSG_NODE_SSID, node->ssid);
+	blob_put_string(&buf, APMSG_NODE_BSSID, ether_ntoa((struct ether_addr *) node->bssid));
 	blob_put_int32(&buf, APMSG_NODE_FREQ, node->freq);
 	blob_put_int32(&buf, APMSG_NODE_NOISE, node->noise);
 	blob_put_int32(&buf, APMSG_NODE_LOAD, node->load);

@@ -15,6 +15,11 @@
  *   Copyright (C) 2020 embedd.ch 
  *   Copyright (C) 2020 Felix Fietkau <nbd@nbd.name> 
  *   Copyright (C) 2020 John Crispin <john@phrozen.org> 
+ *
+ *   Copyright (C) 2021 Nico Petermann <nico.petermann3@gmail.com>
+ *   Copyright (C) 2021 Tomas Duchac <tomasduchac@protonmail.ch>
+ *   Copyright (C) 2021 Philip Jonas Franz <R41Da@gmx.de>
+ *   Copyright (C) 2021 Jan Braun <jan-kai@braun-bs.de>
  */
 
 #include <sys/types.h>
@@ -30,6 +35,7 @@
 #include <libubox/blobmsg_json.h>
 #include "usteer.h"
 #include "node.h"
+#include "hearing_map.h"
 
 AVL_TREE(local_nodes, avl_strcmp, false, NULL);
 static struct blob_buf b;
@@ -76,8 +82,8 @@ usteer_handle_remove(struct ubus_context *ctx, struct ubus_subscriber *s,
 
 static int
 usteer_handle_event(struct ubus_context *ctx, struct ubus_object *obj,
-		   struct ubus_request_data *req, const char *method,
-		   struct blob_attr *msg)
+		            struct ubus_request_data *req, const char *method,
+                    struct blob_attr *msg)
 {
 	enum {
 		EVENT_ADDR,
@@ -115,6 +121,12 @@ usteer_handle_event(struct ubus_context *ctx, struct ubus_object *obj,
 
 	ln = container_of(obj, struct usteer_local_node, ev.obj);
 	node = &ln->node;
+
+	if (ev_type == EVENT_TYPE_BEACON) {
+		usteer_handle_event_beacon_report(ln, msg);
+		return 0;
+	}
+
 	blobmsg_parse(policy, __EVENT_MAX, tb, blob_data(msg), blob_len(msg));
 	if (!tb[EVENT_ADDR] || !tb[EVENT_FREQ])
 		return UBUS_STATUS_INVALID_ARGUMENT;
@@ -237,6 +249,7 @@ usteer_local_node_set_assoc(struct usteer_local_node *ln, struct blob_attr *cl)
 			n_assoc++;
 
 		usteer_update_client_active_bytes(si, cur);
+		usteer_beacon_request_check(si);
 	}
 
 	node->n_assoc = n_assoc;
@@ -295,6 +308,18 @@ usteer_local_node_rrm_nr_cb(struct ubus_request *req, int type, struct blob_attr
 		return;
 
 	usteer_node_set_blob(&ln->node.rrm_nr, tb);
+
+	struct blobmsg_policy policy_bssid[3] = {
+			{ .type = BLOBMSG_TYPE_STRING },
+			{ .type = BLOBMSG_TYPE_STRING },
+			{ .type = BLOBMSG_TYPE_STRING },
+	};
+	struct blob_attr *ba[3];
+	blobmsg_parse_array(policy_bssid, ARRAY_SIZE(ba), ba, blobmsg_data(ln->node.rrm_nr), blobmsg_data_len(ln->node.rrm_nr));
+	if (ba[0]) {
+		uint8_t *bssid = (uint8_t *) ether_aton(blobmsg_get_string(ba[0]));
+		memcpy(ln->node.bssid, bssid, sizeof(ln->node.bssid));
+	}
 }
 
 static void
