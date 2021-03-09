@@ -76,7 +76,7 @@ better_signal_strength_hearing_map(struct beacon_report *br_cur, struct beacon_r
 	if (is_better) {
 		MSG_T_STA("rcpi_diff_threshold", br_cur->address->sta->addr,
 				  "exceeded (config=%i) (real=%i)\n",
-				  config.signal_diff_threshold,
+				  rcpi_threshold,
 				  br_new->rcpi - br_cur->rcpi);
 	}
 	return is_better;
@@ -157,9 +157,10 @@ find_better_candidate(struct sta_info *si_ref)
 		if (strcmp(node->ssid, si_ref->node->ssid) != 0)
 			continue;
 
+		bool create;
 		if (is_better_candidate_hearing_map(br_cur, br) &&
 			!is_better_candidate_hearing_map(br, br_cur))
-			return br->address;
+			return usteer_sta_info_get(br->address->sta, node, &create);
 	}
 
 	list_for_each_entry(si, &sta->nodes, list) {
