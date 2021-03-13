@@ -278,7 +278,8 @@ struct usteer_ssid {
 };
 static struct list_head *config_ssid_list = NULL;
 
-void config_set_ssid(struct blob_attr *data) {
+void config_set_ssid(struct blob_attr *data) 
+{
 	struct usteer_ssid *uss, *tmp;
 	struct blob_attr *cur;
 	int rem;
@@ -308,7 +309,8 @@ void config_set_ssid(struct blob_attr *data) {
 	usteer_local_nodes_init(ubus_ctx);
 }
 
-void config_get_ssid(struct blob_buf *buf) {
+void config_get_ssid(struct blob_buf *buf)
+{
 	struct usteer_ssid *uss;
 	void *c;
 
@@ -319,7 +321,8 @@ void config_get_ssid(struct blob_buf *buf) {
 	blobmsg_close_array(buf, c);
 }
 
-bool usteer_is_valid_ssid(const char *ssid) {
+bool usteer_is_valid_ssid(const char *ssid)
+{
 	bool valid = true; // empty list -> all valid
 	struct usteer_ssid *uss;
 
