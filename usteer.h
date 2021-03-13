@@ -138,6 +138,8 @@ struct usteer_config {
 	uint32_t band_steering_threshold;
 	uint32_t load_balancing_threshold;
 
+	uint32_t vendor_update_interval;
+
 	uint32_t remote_update_interval;
 	uint32_t remote_node_timeout;
 
@@ -285,6 +287,10 @@ void config_get_interfaces(struct blob_buf *buf);
 
 void config_set_node_up_script(struct blob_attr *data);
 void config_get_node_up_script(struct blob_buf *buf);
+
+void config_set_ssid(struct blob_attr *data);
+void config_get_ssid(struct blob_buf *buf);
+bool usteer_is_valid_ssid(const char *ssid);
 
 int usteer_interface_init(void);
 void usteer_interface_add(const char *name);

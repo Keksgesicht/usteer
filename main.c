@@ -78,6 +78,7 @@ void usteer_init_defaults(void)
 	config.seen_policy_timeout = 30 * 1000;
 	config.band_steering_threshold = 5;
 	config.load_balancing_threshold = 5;
+	config.vendor_update_interval = 60 * 1000;
 	config.remote_update_interval = 1000;
 	config.initial_connect_delay = 0;
 	config.remote_node_timeout = 120 * 1000;

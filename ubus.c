@@ -23,6 +23,7 @@
 #ifdef linux
 #include <netinet/ether.h>
 #endif
+#include <libubox/list.h>
 
 #include "usteer.h"
 #include "node.h"
@@ -175,6 +176,7 @@ struct cfg_item {
 	_cfg(U32, beacon_request_frequency), \
 	_cfg(U32, beacon_request_signal_modifier), \
 	_cfg(ARRAY_CB, interfaces), \
+	_cfg(ARRAY_CB, ssid), \
 	_cfg(STRING_CB, node_up_script)
 
 enum cfg_items {
@@ -268,6 +270,71 @@ usteer_ubus_set_config(struct ubus_context *ctx, struct ubus_object *obj,
 	}
 
 	return 0;
+}
+
+struct usteer_ssid {
+	char ssid[33];
+	struct list_head list;
+};
+static struct list_head *config_ssid_list = NULL;
+
+void config_set_ssid(struct blob_attr *data) 
+{
+	struct usteer_ssid *uss, *tmp;
+	struct blob_attr *cur;
+	int rem;
+
+	if (!blobmsg_check_attr_list(data, BLOBMSG_TYPE_STRING))
+		return;
+
+	/* flush old list */
+	if(config_ssid_list) {
+		list_for_each_entry_safe(uss, tmp, config_ssid_list, list) {
+			list_del(&uss->list);
+			free(uss);
+		}
+	} else {
+		config_ssid_list = malloc(sizeof(struct list_head));
+		INIT_LIST_HEAD(config_ssid_list);
+	}
+
+	/* before building new list */
+	blobmsg_for_each_attr(cur, data, rem) {
+		char *ssid = blobmsg_data(cur);
+		uss = malloc(sizeof(struct usteer_ssid));
+		strncpy(uss->ssid, ssid, sizeof(uss->ssid));
+		list_add(&uss->list, config_ssid_list);
+	}
+
+	usteer_local_nodes_init(ubus_ctx);
+}
+
+void config_get_ssid(struct blob_buf *buf)
+{
+	struct usteer_ssid *uss;
+	void *c;
+
+	c = blobmsg_open_array(buf, "ssid");
+	list_for_each_entry(uss, config_ssid_list, list) {
+		blobmsg_add_string(buf, NULL, uss->ssid);
+	}
+	blobmsg_close_array(buf, c);
+}
+
+bool usteer_is_valid_ssid(const char *ssid)
+{
+	bool valid = true; // empty list -> all valid
+	struct usteer_ssid *uss;
+
+	if (!config_ssid_list)
+		return true;
+	list_for_each_entry(uss, config_ssid_list, list) {
+		if (strncmp(uss->ssid, ssid, sizeof(uss->ssid)) == 0)
+			return true;
+		else
+			valid = false;
+	}
+	return valid;
 }
 
 static void

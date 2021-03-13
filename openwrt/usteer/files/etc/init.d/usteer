@@ -21,6 +21,13 @@ load_ifaces() {
 	done
 }
 
+load_ssid() {
+	local ssid="$(uci get usteer.@usteer[-1].ssid)"
+	for s in $ssid; do
+		echo -n "$s "
+	done
+}
+
 uci_option_to_json_bool() {
 	local cfg="$1"
 	local option="$2"
@@ -87,6 +94,12 @@ load_config() {
 	json_add_array interfaces
 	for i in $(load_ifaces); do
 		json_add_string "" "$i"
+	done
+	json_close_array
+
+	json_add_array ssid
+	for s in $(load_ssid); do
+	  json_add_string "" "$s"
 	done
 	json_close_array
 

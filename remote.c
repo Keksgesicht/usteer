@@ -21,6 +21,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <net/if.h>
+#include <ifaddrs.h>
 #include <arpa/inet.h>
 #ifdef linux
 #include <netinet/ether.h>
@@ -28,10 +29,10 @@
 #include <errno.h>
 #include <unistd.h>
 
-
 #include <libubox/vlist.h>
 #include <libubox/avl-cmp.h>
 #include <libubox/usock.h>
+
 #include "usteer.h"
 #include "remote.h"
 #include "node.h"
@@ -40,6 +41,7 @@ static uint32_t local_id;
 static struct uloop_fd remote_fd;
 static struct uloop_timeout remote_timer;
 static struct uloop_timeout reload_timer;
+static struct uloop_timeout vendor_timer;
 
 static struct blob_buf buf;
 static uint32_t msg_seq;
@@ -230,6 +232,8 @@ interface_add_node(struct interface *iface, const char *addr, unsigned long id, 
 		MSG(DEBUG, "Cannot parse node in message\n");
 		return;
 	}
+	if(!usteer_is_valid_ssid(msg.ssid))
+		return;
 
 	node = interface_get_node(addr, id, msg.name);
 	node->check = 0;
@@ -545,6 +549,92 @@ usteer_reload_timer(struct uloop_timeout *t)
 	uloop_fd_add(&remote_fd, ULOOP_READ);
 }
 
+static char hex[] = "0123456789ABCDEF";
+static void convert_to_hex_string(char *str, const uint8_t *val, size_t count)
+{
+	for (size_t i = 0; i < count; i++) {
+		str[(i * 2) + 0] = hex[((val[i] & 0xF0) >> 4)];
+		str[(i * 2) + 1] = hex[((val[i] & 0x0F) >> 0)];
+	}
+}
+
+static inline int
+usteer_vendor_get()
+{
+	struct ifaddrs *ifaddr, *ifa;
+	uint8_t tag_number = 0xdd; // vendor specific
+	uint8_t oiu_type[] = {0xff, 0xda, 0x0c, 0xcc}; // Freifunk Darmstadt - Chaos Computer Club
+	uint8_t tag_length = 4;
+	void *b;
+
+	if (getifaddrs(&ifaddr) < 0) {
+		MSG(DEBUG, "vendor_update_interval: %s", "getifaddrs");
+		return false;
+	}
+
+	blob_buf_init(&buf, 0);
+	b = blobmsg_alloc_string_buffer(&buf, "vendor_elements", (tag_length + 2) * 2);
+	convert_to_hex_string(b, &tag_number, 1);
+	convert_to_hex_string(b + (2 * 2), oiu_type, 4);
+
+	for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+		if (ifa->ifa_addr == NULL)
+			continue;
+
+		unsigned int ifindex = if_nametoindex(ifa->ifa_name);
+		if (!interface_find_by_ifindex(ifindex))
+			continue;
+		
+		if (ifa->ifa_addr->sa_family == AF_INET6) {
+			uint8_t tag_length_old = tag_length;
+			tag_length += 16;
+			blobmsg_realloc_string_buffer(&buf, (tag_length + 2) * 2);
+
+			struct sockaddr_in6 *sin = (struct sockaddr_in6 *) ifa->ifa_addr;
+			convert_to_hex_string(b + ((tag_length_old + 2) * 2), sin->sin6_addr.s6_addr, 16);
+		}
+	}
+	convert_to_hex_string(b + (1 * 2), &tag_length, 1);
+	blobmsg_add_string_buffer(&buf);
+	freeifaddrs(ifaddr);
+	return tag_length;
+}
+
+static inline void
+usteer_vendor_set()
+{
+	struct usteer_local_node *ln;
+	struct usteer_node *node;
+
+	/*
+	 * collecting all IPv6 addresses of all usteer LAN interfaces
+	 * this collection will be set in the vendor specific elements
+	 * of the beacon frame to enable wireless neighbor discovery
+	 */
+	if (usteer_vendor_get() <= 4) {
+		MSG(DEBUG, "vendor_update_interval: %s", "no IP-addresses for usteer LAN interfaces found!");
+		return;
+	}
+
+	avl_for_each_element(&local_nodes, node, avl) {
+		ln = container_of(node, struct usteer_local_node, node);
+		ubus_invoke(ubus_ctx, ln->obj_id, "set_vendor_elements", buf.head, NULL, 0, 100);
+	}
+}
+
+static void
+usteer_vendor_update_timer(struct uloop_timeout *t)
+{
+	MSG_T("vendor_update_interval", "start vendor update (interval=%u)\n",
+		  config.vendor_update_interval);
+
+	usteer_update_time();
+	uloop_timeout_set(t, config.vendor_update_interval);
+
+	usteer_vendor_set();
+}
+
+
 int usteer_interface_init(void)
 {
 	if (usteer_init_local_id())
@@ -555,6 +645,9 @@ int usteer_interface_init(void)
 
 	reload_timer.cb = usteer_reload_timer;
 	reload_timer.cb(&reload_timer);
+
+	vendor_timer.cb = usteer_vendor_update_timer;
+	vendor_timer.cb(&vendor_timer);
 
 	return 0;
 }
