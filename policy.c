@@ -19,14 +19,15 @@
 
 #include "usteer.h"
 #include "node.h"
+#include "hearing_map.h"
 
 static bool
-below_assoc_threshold(struct sta_info *si_cur, struct sta_info *si_new)
+below_assoc_threshold(struct usteer_node *node_cur, struct usteer_node *node_new, struct sta_info *si)
 {
-	int n_assoc_cur = si_cur->node->n_assoc;
-	int n_assoc_new = si_new->node->n_assoc;
-	bool ref_5g = si_cur->node->freq > 4000;
-	bool node_5g = si_new->node->freq > 4000;
+	int n_assoc_cur = node_cur->n_assoc;
+	int n_assoc_new = node_new->n_assoc;
+	bool ref_5g = node_cur->freq > 4000;
+	bool node_5g = node_new->freq > 4000;
 
 	if (ref_5g && !node_5g)
 		n_assoc_new += config.band_steering_threshold;
@@ -37,7 +38,7 @@ below_assoc_threshold(struct sta_info *si_cur, struct sta_info *si_new)
 
 	if (n_assoc_new > n_assoc_cur) {
 		MSG_T_STA("band_steering_threshold,load_balancing_threshold",
-			si_cur->sta->addr, "exeeded (bs=%u, lb=%u)\n",
+			si->sta->addr, "exeeded (bs=%u, lb=%u)\n",
 			config.band_steering_threshold,
 			config.load_balancing_threshold);
 	}
@@ -63,35 +64,66 @@ better_signal_strength(struct sta_info *si_cur, struct sta_info *si_new)
 }
 
 static bool
-below_load_threshold(struct sta_info *si)
+better_signal_strength_hearing_map(struct beacon_report *br_cur, struct beacon_report *br_new)
 {
-	return si->node->n_assoc >= config.load_kick_min_clients &&
-	       si->node->load > config.load_kick_threshold;
+	uint16_t rcpi_threshold = (config.signal_diff_threshold / 100) * 255;
+	const bool is_better = br_new->rcpi - br_cur->rcpi
+							> rcpi_threshold;
+
+	if (!config.signal_diff_threshold)
+		return false;
+
+	if (is_better) {
+		MSG_T_STA("rcpi_diff_threshold", br_cur->address->sta->addr,
+				  "exceeded (config=%i) (real=%i)\n",
+				  rcpi_threshold,
+				  br_new->rcpi - br_cur->rcpi);
+	}
+	return is_better;
 }
 
 static bool
-has_better_load(struct sta_info *si_cur, struct sta_info *si_new)
+below_load_threshold(struct usteer_node *node)
 {
-	return !below_load_threshold(si_cur) && below_load_threshold(si_new);
+	return node->n_assoc >= config.load_kick_min_clients &&
+		   node->load > config.load_kick_threshold;
 }
 
 static bool
-below_max_assoc(struct sta_info *si)
+has_better_load(struct usteer_node *node_cur, struct usteer_node *node_new)
 {
-	struct usteer_node *node = si->node;
+	return !below_load_threshold(node_cur) && below_load_threshold(node_new);
+}
 
+static bool
+below_max_assoc(struct usteer_node *node)
+{
 	return !node->max_assoc || node->n_assoc < node->max_assoc;
 }
 
 static bool
 is_better_candidate(struct sta_info *si_cur, struct sta_info *si_new)
 {
-	if (!below_max_assoc(si_new))
+	if (!below_max_assoc(si_new->node))
 		return false;
 
-	return below_assoc_threshold(si_cur, si_new) ||
-	       better_signal_strength(si_cur, si_new) ||
-	       has_better_load(si_cur, si_new);
+	return below_assoc_threshold(si_cur->node, si_new->node, si_cur) ||
+		   better_signal_strength(si_cur, si_new) ||
+		   has_better_load(si_cur->node, si_new->node);
+}
+
+static bool
+is_better_candidate_hearing_map(struct beacon_report *br_cur, struct beacon_report *br_new)
+{
+	struct usteer_node *node_new = get_usteer_node_from_bssid(br_new->bssid);
+	struct usteer_node *node_cur = get_usteer_node_from_bssid(br_cur->bssid);
+
+	if (!below_max_assoc(node_new))
+		return false;
+
+	return below_assoc_threshold(node_cur, node_new, br_cur->address) ||
+		   better_signal_strength_hearing_map(br_cur, br_new) ||
+		   has_better_load(node_cur, node_new);
 }
 
 static struct sta_info *
@@ -99,6 +131,37 @@ find_better_candidate(struct sta_info *si_ref)
 {
 	struct sta_info *si;
 	struct sta *sta = si_ref->sta;
+	struct beacon_report *br;
+	struct beacon_report *br_cur = NULL;
+
+	list_for_each_entry(br, &si_ref->beacon_reports, sta_list) {
+		struct usteer_node *node = get_usteer_node_from_bssid(br->bssid);
+		if (!node)
+			continue;
+		if (node == si_ref->node) {
+			br_cur = br;
+			break;
+		}
+	}
+
+	list_for_each_entry(br, &si_ref->beacon_reports, sta_list) {
+		if(!br_cur)
+			break;
+
+		struct usteer_node *node = get_usteer_node_from_bssid(br->bssid);
+		if (!node)
+			continue;
+		if (node == si_ref->node)
+			continue;
+
+		if (strcmp(node->ssid, si_ref->node->ssid) != 0)
+			continue;
+
+		bool create;
+		if (is_better_candidate_hearing_map(br_cur, br) &&
+			!is_better_candidate_hearing_map(br, br_cur))
+			return usteer_sta_info_get(br->address->sta, node, &create);
+	}
 
 	list_for_each_entry(si, &sta->nodes, list) {
 		if (si == si_ref)
